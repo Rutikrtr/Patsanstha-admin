@@ -1,0 +1,40 @@
+/* Sidebar background image styles */
+.sidebar-bg {
+  background-image: url('./sidebg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 250px; 
+  z-index: 1000;
+}
+
+/* Desktop styles - only apply margin on large screens */
+@media (min-width: 1024px) {
+  .main-content {
+    margin-left: 250px;
+  }
+  
+  .content-wrapper {
+    margin-left: 250px; 
+  }
+
+  body {
+    margin-left: 250px;
+  }
+}
+
+/* Mobile styles - no margin on smaller screens */
+@media (max-width: 1023px) {
+  .main-content,
+  .content-wrapper {
+    margin-left: 0;
+  }
+
+  body {
+    margin-left: 0;
+  }
+}

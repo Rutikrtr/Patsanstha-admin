@@ -1,7 +1,8 @@
+// AddAgentForm.jsx
 import React, { useState } from 'react';
 import { X, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { patsansthaAPI } from '../../../services/api';
+import { patsansthaAPI } from '../../../../../services/api';
 
 const AddAgentForm = ({ onClose, editData = null, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -76,20 +77,7 @@ const AddAgentForm = ({ onClose, editData = null, onSuccess }) => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Agent Number *
-            </label>
-            <input
-              type="text"
-              value={formData.agentno}
-              onChange={(e) => setFormData({ ...formData, agentno: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:bg-gray-50"
-              placeholder="Enter agent number"
-              required
-              disabled={editData || loading}
-            />
-          </div>
+          
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

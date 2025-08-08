@@ -1,6 +1,6 @@
 import React from 'react';
-import StatsCards from '../components/StatsCards';
-import OrganizationInfo from '../components/OrganizationInfo';
+import StatsCards from './components/StatsCards';
+import OrganizationInfo from './components/OrganizationInfo';
 
 const DashboardPage = ({ patsansthaData, loading }) => {
   if (loading) {

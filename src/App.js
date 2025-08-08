@@ -5,7 +5,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { Toaster } from 'react-hot-toast';
 import { store, persistor } from './store';
 import Login from './components/auth/Login';
-import Dashboard from './components/dashboard/Dashboard';
+import Patsanstha from './components/dashboard/Patsanstha';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 function App() {
@@ -17,15 +17,15 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route 
-                path="/dashboard" 
+                path="/Patsanstha" 
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <Patsanstha />
                   </ProtectedRoute>
                 } 
               />
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<Navigate to="/Patsanstha" replace />} />
+              <Route path="*" element={<Navigate to="/Patsanstha" replace />} />
             </Routes>
           </Router>
           <Toaster 
