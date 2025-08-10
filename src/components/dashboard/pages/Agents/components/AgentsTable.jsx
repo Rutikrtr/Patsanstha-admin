@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Search,
-  UserPlus,
-  Edit,
-  Trash2,
   Users,
   Upload,
   FileText,
@@ -22,9 +19,6 @@ const AgentsTable = ({
   patsansthaData,
   searchTerm,
   setSearchTerm,
-  setShowAddForm,
-  setEditingAgent,
-  handleDeleteAgent,
   onRefreshData,
 }) => {
   const [collectionStatus, setCollectionStatus] = useState(null);
@@ -102,14 +96,18 @@ const AgentsTable = ({
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const promises = [fetchCollectionStatus()];
+      // Call APIs directly
+      const promises = [
+        fetchCollectionStatus(),
+        patsansthaAPI.viewData()
+      ];
 
+      const [, freshDataResponse] = await Promise.all(promises);
+
+      // Notify parent with fresh data
       if (onRefreshData && typeof onRefreshData === "function") {
-        promises.push(onRefreshData());
+        onRefreshData(freshDataResponse?.data || freshDataResponse);
       }
-
-      await Promise.all(promises);
-      toast.success("Data refreshed successfully");
     } catch (error) {
       const errorMessage = handleApiError(error, "Failed to refresh data");
       toast.error(errorMessage);
@@ -163,13 +161,19 @@ const AgentsTable = ({
           `File uploaded successfully for Agent ${agentno}`;
         toast.success(successMessage);
 
-        const refreshPromises = [];
-        if (onRefreshData && typeof onRefreshData === "function") {
-          refreshPromises.push(onRefreshData());
-        }
-        refreshPromises.push(fetchCollectionStatus());
+        // Refresh data after upload
+        const refreshPromises = [
+          fetchCollectionStatus(),
+          patsansthaAPI.viewData()
+        ];
 
-        await Promise.all(refreshPromises);
+        const [, freshDataResponse] = await Promise.all(refreshPromises);
+
+        // Notify parent with fresh data
+        if (onRefreshData && typeof onRefreshData === "function") {
+          onRefreshData(freshDataResponse?.data || freshDataResponse);
+        }
+
       } catch (error) {
         const errorMessage = handleApiError(error, "Failed to upload file");
         console.error("Upload error:", error);
@@ -220,7 +224,10 @@ const AgentsTable = ({
       document.body.removeChild(a);
 
       toast.success("Collection file downloaded successfully");
+      
+      // Refresh collection status after download
       await fetchCollectionStatus();
+      
     } catch (error) {
       const errorMessage = handleApiError(
         error,
@@ -230,22 +237,6 @@ const AgentsTable = ({
       toast.error(errorMessage);
     } finally {
       setDownloadingAgent(null);
-    }
-  };
-
-  // Handle delete agent
-  const handleDeleteAgentWithToast = async (agentno) => {
-    try {
-      await handleDeleteAgent(agentno);
-      toast.success(`Agent ${agentno} deleted successfully`);
-      await fetchCollectionStatus();
-    } catch (error) {
-      const errorMessage = handleApiError(
-        error,
-        `Failed to delete agent ${agentno}`
-      );
-      console.error("Delete error:", error);
-      toast.error(errorMessage);
     }
   };
 
@@ -270,38 +261,19 @@ const AgentsTable = ({
   };
 
   return (
-    <div >
+    <div>
       {/* Header Section */}
       <div className="px-6 py-6 bg-white border-b border-gray-200">
         <div className="flex flex-col space-y-4">
           {/* Page Title */}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Agent Management</h1>
-            <p className="text-gray-600 mt-1">Manage your agents and their details efficiently</p>
+            <h1 className="text-xl font-semibold text-gray-900 flex items-center">Agent Management</h1>
+            <p className="text-gray-600 mt-1">View and manage agent collection data</p>
           </div>
           
           {/* Controls Row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
-              {/* Manual Refresh Button */}
-              {showRefreshButton && (
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing || loadingStatus}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <RefreshCw
-                    className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-                  />
-                  <span>
-                    {refreshing ? "Updating..." : "Refresh"}
-                  </span>
-                </button>
-              )}
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
@@ -312,19 +284,36 @@ const AgentsTable = ({
                   className="pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 />
               </div>
-              {/* Add Agent Button */}
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              {/* Manual Refresh Button */}
               <button
-                onClick={() => setShowAddForm(true)}
-                disabled={
-                  patsansthaData?.agents?.length >= patsansthaData?.noOfAgent
-                }
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center space-x-2 transition-all duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                onClick={handleRefresh}
+                disabled={refreshing || loadingStatus}
+                className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${
+                  showRefreshButton 
+                    ? "bg-green-600 hover:bg-green-700 text-white" 
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
               >
-                <UserPlus className="h-4 w-4" />
-                <span>Add Agent</span>
+                <RefreshCw
+                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                />
+                <span>
+                  {refreshing ? "Updating..." : showRefreshButton ? "Refresh" : "Refresh"}
+                </span>
               </button>
             </div>
           </div>
+          
+          {/* Status indicator */}
+          {loadingStatus && (
+            <div className="flex items-center space-x-2 text-blue-600 text-sm">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+              <span>Loading collection status...</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -506,26 +495,6 @@ const AgentsTable = ({
                           <Download className="h-4 w-4" />
                         </button>
                       )}
-                     
-                      {/* Edit Button */}
-                      <button
-                        onClick={() => setEditingAgent(agent)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-105 border border-blue-200"
-                        title="Edit Agent"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      
-                      {/* Delete Button */}
-                      <button
-                        onClick={() =>
-                          handleDeleteAgentWithToast(agent.agentno)
-                        }
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-105 border border-red-200"
-                        title="Delete Agent"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -549,18 +518,8 @@ const AgentsTable = ({
           <p className="text-gray-500 mb-8 text-base">
             {searchTerm
               ? "Try adjusting your search criteria to find agents."
-              : "Get started by adding your first agent to the system."}
+              : "No agents are currently available in the system."}
           </p>
-          {!searchTerm &&
-            patsansthaData?.agents?.length < patsansthaData?.noOfAgent && (
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg transition-all duration-200 font-medium shadow-sm hover:shadow-md"
-              >
-                <UserPlus className="h-5 w-5 inline mr-3" />
-                Add Your First Agent
-              </button>
-            )}
         </div>
       )}
     </div>

@@ -18,8 +18,13 @@ const authSlice = createSlice({
       state.token = null;
       state.userType = null;
     },
+    updateAgentCount: (state, action) => {
+      if (state.user) {
+        state.user.currentAgentCount = action.payload.currentAgentCount;
+      }
+    },
   },
 });
 
-export const { loginSuccess, logout } = authSlice.actions;
+export const { loginSuccess, logout, updateAgentCount } = authSlice.actions;
 export default authSlice.reducer;

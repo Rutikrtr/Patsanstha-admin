@@ -1,25 +1,31 @@
-/* Sidebar background image styles */
+/* Sidebar background gradient styles */
 .sidebar-bg {
-  background-image: url('./sidebg.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background:#6739B7; /* Smooth radiant purple */
+  background-size: 400% 400%; /* For smooth animation */
   height: 100vh;
   position: fixed;
   left: 0;
   top: 0;
-  width: 250px; 
+  width: 250px;
   z-index: 1000;
 }
 
-/* Desktop styles - only apply margin on large screens */
+
+
+/* Keep sidebar content above the background */
+.sidebar-bg > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Desktop layout */
 @media (min-width: 1024px) {
   .main-content {
     margin-left: 250px;
   }
   
   .content-wrapper {
-    margin-left: 250px; 
+    margin-left: 250px;
   }
 
   body {
@@ -27,7 +33,7 @@
   }
 }
 
-/* Mobile styles - no margin on smaller screens */
+/* Mobile layout */
 @media (max-width: 1023px) {
   .main-content,
   .content-wrapper {
