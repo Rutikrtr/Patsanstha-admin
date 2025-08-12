@@ -1,29 +1,143 @@
+import axios from 'axios';
 import { API_BASE } from '../utils/constants';
 import { store } from '../store';
+
+// Create axios instance
+const apiClient = axios.create({
+  baseURL: API_BASE,
+  timeout: 10000, // 10 seconds timeout
+});
+
+// Request interceptor to add auth token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = store.getState().auth.token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for JWT expiration handling
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Check if error is 401 (Unauthorized) and not already retried
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      // Check if it's a token expiration error
+      const errorMessage = error.response?.data?.message?.toLowerCase();
+      if (errorMessage?.includes('token') && (errorMessage.includes('expired') || errorMessage.includes('invalid'))) {
+        
+        // Try to refresh token first
+        try {
+          const refreshResponse = await axios.post(`${API_BASE}/patsanstha/refresh-token`, {}, {
+            headers: {
+              Authorization: `Bearer ${store.getState().auth.token}`
+            }
+          });
+
+          if (refreshResponse.data.token) {
+            // Update token in storage and store
+            const { user } = authStorage.getAuthData();
+            authStorage.setAuthData(refreshResponse.data.token, user);
+            
+            // Update Redux store
+            const { loginSuccess } = await import('../store/authSlice');
+            store.dispatch(loginSuccess({
+              user: user,
+              token: refreshResponse.data.token,
+              userType: 'patsanstha'
+            }));
+
+            // Retry the original request with new token
+            originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.token}`;
+            return apiClient(originalRequest);
+          }
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+        }
+
+        // If refresh fails or no refresh token, logout user
+        await handleLogout();
+        
+        // Redirect to login page
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        
+        return Promise.reject(new Error('Session expired. Please login again.'));
+      }
+    }
+
+    // Handle network errors
+    if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
+      return Promise.reject(new Error('Network error. Please check your connection.'));
+    }
+
+    // Handle timeout errors
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject(new Error('Request timeout. Please try again.'));
+    }
+
+    // Return the original error for other cases
+    return Promise.reject(error);
+  }
+);
+
+// Helper function to handle logout
+const handleLogout = async () => {
+  try {
+    // Clear Redux store
+    const { logout } = await import('../store/authSlice');
+    store.dispatch(logout());
+    
+    // Clear all authentication data
+    authStorage.clearAuthData();
+  } catch (error) {
+    console.error('Error during logout:', error);
+  }
+};
 
 // API Helper Functions
 export const apiCall = async (endpoint, options = {}) => {
   try {
-    const token = store.getState().auth.token;
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
+    const config = {
+      url: endpoint,
+      method: options.method || 'GET',
       ...options,
-    });
-    
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || `HTTP error! status: ${response.status}`);
+    };
+
+    // Handle request body
+    if (options.body) {
+      if (typeof options.body === 'string') {
+        config.data = JSON.parse(options.body);
+      } else {
+        config.data = options.body;
+      }
     }
-    return data;
+
+    // Set default content type for JSON requests
+    if (config.data && !(config.data instanceof FormData)) {
+      config.headers = {
+        'Content-Type': 'application/json',
+        ...config.headers,
+      };
+    }
+
+    const response = await apiClient(config);
+    return response.data;
   } catch (error) {
-    // Better error handling
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Please check your connection.');
-    }
+    // Re-throw the processed error from interceptor
     throw error;
   }
 };
@@ -31,23 +145,22 @@ export const apiCall = async (endpoint, options = {}) => {
 // File Upload API Helper (without Content-Type header for FormData)
 export const fileApiCall = async (endpoint, options = {}) => {
   try {
-    const token = store.getState().auth.token;
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const config = {
+      url: endpoint,
+      method: options.method || 'POST',
+      data: options.body,
       headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
+        // Don't set Content-Type for FormData, let browser set it
         ...options.headers,
       },
-      ...options,
-    });
-    
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || `File upload failed! status: ${response.status}`);
-    }
-    return data;
+    };
+
+    const response = await apiClient(config);
+    return response.data;
   } catch (error) {
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Please check your connection.');
+    // Customize error message for file uploads
+    if (error.response?.status >= 400) {
+      throw new Error(error.response.data?.message || `File upload failed! status: ${error.response.status}`);
     }
     throw error;
   }
@@ -56,31 +169,20 @@ export const fileApiCall = async (endpoint, options = {}) => {
 // File Download API Helper (for downloading collection files)
 export const downloadApiCall = async (endpoint, options = {}) => {
   try {
-    const token = store.getState().auth.token;
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
+    const config = {
+      url: endpoint,
+      method: options.method || 'GET',
+      responseType: 'text', // For .txt files
       ...options,
-    });
-    
-    if (!response.ok) {
-      let errorMessage;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || `Download failed! status: ${response.status}`;
-      } catch {
-        errorMessage = `Download failed! status: ${response.status}`;
-      }
-      throw new Error(errorMessage);
-    }
-    
-    // Return the response text for .txt files
-    return await response.text();
+    };
+
+    const response = await apiClient(config);
+    return response.data;
   } catch (error) {
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Please check your connection.');
+    // Customize error message for downloads
+    if (error.response?.status >= 400) {
+      const errorMessage = error.response.data?.message || `Download failed! status: ${error.response.status}`;
+      throw new Error(errorMessage);
     }
     throw error;
   }
