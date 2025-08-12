@@ -130,7 +130,7 @@ const Sidebar = ({
           </nav>
 
           <div className="mt-auto px-3 py-3 mb-4">
-            <div className="relative bg-white/10 backdrop-blur-lg border border-white/10 rounded-xl p-3 shadow-md overflow-hidden">
+            <div className="relative bg-white/5 backdrop-blur-xl  rounded-2xl p-3 shadow-xl overflow-hidden">
               {/* Background gradient */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-40"></div>
 

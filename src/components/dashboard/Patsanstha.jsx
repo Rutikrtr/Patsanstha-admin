@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
+
 // Components
 import Sidebar from "./components/Sidebar.jsx";
 import MobileHeader from "./components/MobileHeader.jsx";
@@ -18,46 +20,35 @@ fontLink.href =
 fontLink.rel = "stylesheet";
 document.head.appendChild(fontLink);
 
-// Apply DM Sans to body
 document.body.style.fontFamily = '"DM Sans", sans-serif';
 
 const Patsanstha = () => {
   const { user } = useSelector((state) => state.auth);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Enhanced loading states
-  const [loadingStates, setLoadingStates] = useState({
-    initial: true,
-    data: false,
-    agentAction: false, // For add/edit/delete operations
-    logout: false,
-  });
+  const hideSidebar = location.pathname === "/login";
 
-  const [showLoading, setShowLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
-
-  // Helper function to update specific loading state
-  const updateLoadingState = (key, value) => {
-    setLoadingStates((prev) => ({ ...prev, [key]: value }));
-  };
-
-  // Check if any loading is active
-  const isAnyLoading = Object.values(loadingStates).some((loading) => loading);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    initializeApp();
+    const timer = setTimeout(() => setInitialLoading(false), 800);
+    return () => clearTimeout(timer);
   }, []);
 
-  const initializeApp = async () => {
-    updateLoadingState("initial", true);
-    updateLoadingState("initial", false);
+  // Function to trigger logout fade and redirect
+  const triggerLogout = () => {
+    setShowOverlay(false); // Close any loaders
+    setFadeOut(true);
+    setTimeout(() => {
+      navigate("/login");
+    }, 800); // matches fade duration
   };
 
-  const handleLoadingComplete = () => {
-    setShowLoading(false);
-  };
-
-  // Render content based on active section
   const renderContent = () => {
     switch (activeSection) {
       case "dashboard":
@@ -67,20 +58,21 @@ const Patsanstha = () => {
       case "reports":
         return <CustomerReport />;
       case "settings":
-        return <SettingsPage />;
+        return <SettingsPage triggerLogout={triggerLogout} />;
       default:
         return <DashboardPage />;
     }
   };
 
-  // Show loading screen during initial load or when showLoading is true
-  if (loadingStates.initial || showLoading) {
-    return <LoadingScreen onAnimationComplete={handleLoadingComplete} />;
+  if (initialLoading) {
+    return <LoadingScreen />;
   }
 
   return (
     <div
-      className="h-screen p-4 lg:p-6"
+      className={`h-screen p-4 lg:p-6 transition-opacity duration-700 ${
+        fadeOut ? "opacity-0" : "opacity-100"
+      }`}
       style={{
         fontFamily: '"DM Sans", sans-serif',
         background: "#6739B7",
@@ -91,44 +83,29 @@ const Patsanstha = () => {
       }}
     >
       <div className="flex h-full rounded-3xl overflow-hidden shadow-2xl">
-        <Sidebar
-          user={user}
-          isMobileMenuOpen={isMobileMenuOpen}
-          setIsMobileMenuOpen={setIsMobileMenuOpen}
-          activeSection={activeSection}
-          setActiveSection={setActiveSection}
-          loading={loadingStates.logout}
-        />
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden lg:ml-0 bg-white">
-          <MobileHeader
+        {!hideSidebar && user && (
+          <Sidebar
+            user={user}
             isMobileMenuOpen={isMobileMenuOpen}
             setIsMobileMenuOpen={setIsMobileMenuOpen}
-            loading={isAnyLoading}
+            activeSection={activeSection}
+            setActiveSection={setActiveSection}
           />
+        )}
 
-          {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden lg:ml-0 bg-white">
+          {!hideSidebar && (
+            <MobileHeader
+              isMobileMenuOpen={isMobileMenuOpen}
+              setIsMobileMenuOpen={setIsMobileMenuOpen}
+            />
+          )}
           <main className="flex-1 overflow-y-auto bg-gray-50">
-            <div className="p-6 lg:p-8">
-              {/* Loading indicator for data operations */}
-              {loadingStates.data && (
-                <div className="mb-4 flex items-center justify-center py-4">
-                  <div className="flex items-center space-x-2 text-blue-600">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                    <span className="text-sm">Loading data...</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Dynamic Content */}
-              {renderContent()}
-            </div>
+            <div className="p-6 lg:p-8">{renderContent()}</div>
           </main>
         </div>
 
-        {/* Global loading overlay for critical operations */}
-        {loadingStates.agentAction && (
+        {showOverlay && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
               <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>

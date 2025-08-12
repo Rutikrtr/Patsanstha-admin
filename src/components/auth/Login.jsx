@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { loginSuccess } from '../../store/authSlice';
 import { authAPI } from '../../services/api';
+import PigmyProLogo from "../assets/PigmyPro.png";
 
 const Login = () => {
   const [mobilenumber, setMobilenumber] = useState('');
@@ -14,6 +15,14 @@ const Login = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
 
+  // ✅ Add/remove login-page class on body
+  useEffect(() => {
+    document.body.classList.add('login-page');
+    return () => {
+      document.body.classList.remove('login-page');
+    };
+  }, []);
+
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -21,16 +30,15 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
       const response = await authAPI.loginPatsanstha(mobilenumber, password);
-      dispatch(loginSuccess({
-        user: response.data.patsanstha,
-        token: response.data.accessToken,
-        userType: 'patsanstha'
-      }));
-      
-      toast.success('Login successful');
+      dispatch(
+        loginSuccess({
+          user: response.data.patsanstha,
+          token: response.data.accessToken,
+          userType: 'patsanstha',
+        })
+      );
       navigate('/dashboard');
     } catch (error) {
       toast.error(error.message || 'Login failed');
@@ -40,11 +48,15 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+    <div className="w-screen h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <Shield className="mx-auto h-12 w-12 text-indigo-600 mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900">Pigmy Management</h1>
+          <img
+            src={PigmyProLogo}
+            alt="Pigmy Pro Logo"
+            className="mx-auto h-12 w-18 mb-4 filter brightness-0"
+          />
+
           <p className="text-gray-600">Patsanstha Login</p>
         </div>
 

@@ -1,7 +1,7 @@
 /* Sidebar background gradient styles */
 .sidebar-bg {
-  background:#6739B7; /* Smooth radiant purple */
-  background-size: 400% 400%; /* For smooth animation */
+  background: #6739B7;
+  background-size: 400% 400%;
   height: 100vh;
   position: fixed;
   left: 0;
@@ -10,9 +10,6 @@
   z-index: 1000;
 }
 
-
-
-/* Keep sidebar content above the background */
 .sidebar-bg > * {
   position: relative;
   z-index: 2;
@@ -20,15 +17,15 @@
 
 /* Desktop layout */
 @media (min-width: 1024px) {
-  .main-content {
-    margin-left: 250px;
-  }
-  
-  .content-wrapper {
+  body:not(.login-page) {
     margin-left: 250px;
   }
 
-  body {
+  body:not(.login-page) .main-content {
+    margin-left: 250px;
+  }
+
+  body:not(.login-page) .content-wrapper {
     margin-left: 250px;
   }
 }

@@ -1,6 +1,6 @@
 {
-  "short_name": "Pigmy Management",
-  "name": "Pigmy Management",
+  "short_name": "Pigmy Pro",
+  "name": "Pigmy Pro",
   "icons": [
     {
       "src": "favic.png",
@@ -8,12 +8,12 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "favic.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.png",
+      "src": "favic.png",
       "type": "image/png",
       "sizes": "512x512"
     }
