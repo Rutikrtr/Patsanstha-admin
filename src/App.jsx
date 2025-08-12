@@ -8,6 +8,11 @@ import Login from './components/auth/Login';
 import Patsanstha from './components/dashboard/Patsanstha';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
+
+// Import axios interceptor to initialize it
+import './services/axiosInterceptor';
+
+
 function App() {
   return (
     <Provider store={store}>

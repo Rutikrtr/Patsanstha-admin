@@ -8,7 +8,7 @@ import LoadingScreen from "./components/LoadingScreen.jsx";
 // Pages
 import DashboardPage from "./pages/Dashboard/DashboardPage.jsx";
 import AgentsPage from "./pages/Agents/AgentsPage.jsx";
-import CustomerReport from "./pages/customerReport/index.js";
+import CustomerReport from "./pages/customerReport/index.jsx";
 import SettingsPage from "./pages/Settings/SettingsPage.jsx";
 
 // Load DM Sans font
