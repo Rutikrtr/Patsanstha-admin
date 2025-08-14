@@ -1,4 +1,3 @@
-
 // File: components/reports/CustomerReport/components/CustomerTable.js
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
@@ -11,6 +10,7 @@ import {
   Calendar,
   TrendingUp,
   AlertTriangle,
+  X,
 } from "lucide-react";
 import { formatCurrency } from "../utils/formatUtils";
 import { useCustomerReportData } from "../hooks/useCustomerReportData";
@@ -30,6 +30,9 @@ const CustomerTable = ({
   const [showRefreshButton, setShowRefreshButton] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
   const [retryCount, setRetryCount] = useState(0);
+  
+  // Filter states
+  const [selectedAgent, setSelectedAgent] = useState('');
 
   const {
     patsansthaData,
@@ -84,32 +87,68 @@ const CustomerTable = ({
     }
   }, [transactionData]);
 
-  // Filter transactions with improved search
+  // Get unique agents for filter dropdown
+  const uniqueAgents = useMemo(() => {
+    try {
+      const agents = new Map();
+      allTransactions.forEach(transaction => {
+        if (transaction?.agentId?.agentname && transaction?.agentId?.agentno) {
+          const key = `${transaction.agentId.agentno}`;
+          if (!agents.has(key)) {
+            agents.set(key, {
+              agentno: transaction.agentId.agentno,
+              agentname: transaction.agentId.agentname,
+              count: 0
+            });
+          }
+          agents.get(key).count++;
+        }
+      });
+      return Array.from(agents.values()).sort((a, b) => a.agentname.localeCompare(b.agentname));
+    } catch (err) {
+      console.error('Error processing agents:', err);
+      return [];
+    }
+  }, [allTransactions]);
+
+  // Filter transactions with improved search and agent filter
   const filteredTransactions = useMemo(() => {
     try {
-      if (!searchTerm.trim()) return allTransactions;
+      let filtered = allTransactions;
 
-      const searchLower = searchTerm.toLowerCase().trim();
-      return allTransactions.filter((transaction) => {
-        if (!transaction) return false;
-        
-        const searchFields = [
-          transaction.name?.toLowerCase(),
-          transaction.accountNo?.toLowerCase(),
-          transaction.mobileNumber?.toString(),
-          transaction.agentId?.agentname?.toLowerCase(),
-          transaction.agentId?.agentno?.toLowerCase()
-        ];
+      // Text search filter
+      if (searchTerm.trim()) {
+        const searchLower = searchTerm.toLowerCase().trim();
+        filtered = filtered.filter((transaction) => {
+          if (!transaction) return false;
+          
+          const searchFields = [
+            transaction.name?.toLowerCase(),
+            transaction.accountNo?.toLowerCase(),
+            transaction.mobileNumber?.toString(),
+            transaction.agentId?.agentname?.toLowerCase(),
+            transaction.agentId?.agentno?.toLowerCase()
+          ];
 
-        return searchFields.some(field => 
-          field && field.includes(searchLower)
+          return searchFields.some(field => 
+            field && field.includes(searchLower)
+          );
+        });
+      }
+
+      // Agent filter
+      if (selectedAgent) {
+        filtered = filtered.filter(transaction => 
+          transaction.agentId?.agentno === selectedAgent
         );
-      });
+      }
+
+      return filtered;
     } catch (err) {
       console.error('Error filtering transactions:', err);
       return allTransactions;
     }
-  }, [allTransactions, searchTerm]);
+  }, [allTransactions, searchTerm, selectedAgent]);
 
   // Sort transactions with improved error handling
   const sortedTransactions = useMemo(() => {
@@ -189,6 +228,10 @@ const CustomerTable = ({
     }
   }, [sortedTransactions]);
 
+  const clearAgentFilter = useCallback(() => {
+    setSelectedAgent('');
+  }, []);
+
   // Determine which loading/error state to show
   const isInitialLoad = (loading || parentLoading) && allTransactions.length === 0;
   const hasError = (error || parentError) && allTransactions.length === 0;
@@ -230,9 +273,6 @@ const CustomerTable = ({
             <div>
               <h2 className="text-xl font-semibold text-gray-900 flex items-center">
                 Transactions
-                {(error || parentError) && allTransactions.length > 0 && (
-                  <AlertTriangle className="h-5 w-5 text-yellow-500 ml-2" title="Some data may be outdated" />
-                )}
                 {(loading || parentLoading) && allTransactions.length > 0 && (
                   <div className="ml-2 animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
                 )}
@@ -268,21 +308,48 @@ const CustomerTable = ({
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by customer name, account number, mobile, or agent name..."
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              disabled={loading || parentLoading}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
-            />
-            {(loading || parentLoading) && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-              </div>
+          {/* Search and Agent Filter Section */}
+          <div className="flex items-center space-x-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by customer name, account number, mobile, or agent name..."
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                disabled={loading || parentLoading}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
+              />
+              {(loading || parentLoading) && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                </div>
+              )}
+            </div>
+            
+            <div className="w-64">
+              <select
+                value={selectedAgent}
+                onChange={(e) => setSelectedAgent(e.target.value)}
+                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Agents</option>
+                {uniqueAgents.map((agent) => (
+                  <option key={agent.agentno} value={agent.agentno}>
+                    {agent.agentname} ({agent.agentno})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedAgent && (
+              <button
+                onClick={clearAgentFilter}
+                className="flex items-center px-3 py-3 text-gray-600 hover:text-red-600 transition-colors"
+                title="Clear agent filter"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
           </div>
         </div>
@@ -327,9 +394,9 @@ const CustomerTable = ({
         <div className="w-full bg-white">
           {sortedTransactions.length === 0 ? (
             <EmptyState
-              type={searchTerm ? 'no-search-results' : 'no-data'}
+              type={searchTerm || selectedAgent ? 'no-search-results' : 'no-data'}
               searchTerm={searchTerm}
-              onClearSearch={searchTerm ? handleClearSearch : undefined}
+              onClearSearch={searchTerm || selectedAgent ? () => { onSearchChange(''); setSelectedAgent(''); } : undefined}
             />
           ) : (
             <div className="divide-y divide-gray-200">
@@ -415,7 +482,7 @@ const CustomerTable = ({
           <div className="flex items-center justify-between text-sm text-gray-600">
             <span>
               Showing {sortedTransactions.length} of {allTransactions.length} transactions
-              {searchTerm && ` matching "${searchTerm}"`}
+              {(searchTerm || selectedAgent) && ` (filtered)`}
             </span>
             <div className="flex items-center space-x-4">
               <span>Total Collection: </span>
