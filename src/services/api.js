@@ -412,7 +412,6 @@ export const patsansthaAPI = {
     if (agentno) queryParams.append('agentno', agentno);
     if (agentId) queryParams.append('agentId', agentId);
     if (date) queryParams.append('date', date);
-    if (submitted !== undefined) queryParams.append('submitted', submitted);
     
     const queryString = queryParams.toString();
     return apiCall(`/patsanstha/transactions${queryString ? `?${queryString}` : ''}`);
