@@ -10,9 +10,73 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { patsansthaAPI } from "../../../../../services/api";
-import toast from "react-hot-toast";
+
+// Error Popup Modal Component
+const ErrorModal = ({ isOpen, onClose, errorMessage }) => {
+  useEffect(() => {
+    if (isOpen) {
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        document.body.style.overflow = 'unset';
+      };
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+      {/* Backdrop - Non-clickable */}
+      <div 
+        className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm"
+      />
+      
+      {/* Modal */}
+      <div className="relative bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 transform transition-all animate-pulse-once"
+           style={{ zIndex: 10000 }}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-6 w-6 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Error</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        
+        {/* Body */}
+        <div className="p-4">
+          <p className="text-gray-700 text-sm leading-relaxed">
+            {errorMessage}
+          </p>
+        </div>
+        
+        {/* Footer */}
+        <div className="flex justify-end space-x-3 p-4 border-t border-gray-100">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AgentsTable = ({
   filteredAgents,
@@ -29,31 +93,34 @@ const AgentsTable = ({
   const [refreshing, setRefreshing] = useState(false);
   const [showRefreshButton, setShowRefreshButton] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
-  // Helper function to extract and display proper error messages
   const handleApiError = (error, defaultMessage = "An error occurred") => {
     console.error("API Error:", error);
 
+    let message = defaultMessage;
+
     if (error?.message) {
-      return error.message;
+      message = error.message;
+    } else if (typeof error === "string") {
+      message = error;
+    } else if (error?.response?.data?.message) {
+      message = error.response.data.message;
+    } else if (error?.data?.message) {
+      message = error.data.message;
     }
 
-    if (typeof error === "string") {
-      return error;
-    }
-
-    if (error?.response?.data?.message) {
-      return error.response.data.message;
-    }
-
-    if (error?.data?.message) {
-      return error.data.message;
-    }
-
-    return defaultMessage;
+    setErrorMessage(message);
+    setShowErrorModal(true);
+    return message;
   };
 
-  // Auto refresh button visibility
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage(null);
+  };
+
   useEffect(() => {
     const interval = setInterval(() => {
       const timeSinceLastRefresh = Date.now() - lastRefresh;
@@ -65,7 +132,6 @@ const AgentsTable = ({
     return () => clearInterval(interval);
   }, [lastRefresh]);
 
-  // Fetch collection status from API
   const fetchCollectionStatus = async () => {
     setLoadingStatus(true);
     try {
@@ -80,43 +146,29 @@ const AgentsTable = ({
         throw new Error("Invalid response format from server");
       }
     } catch (error) {
-      const errorMessage = handleApiError(
-        error,
-        "Failed to fetch collection status"
-      );
-      console.error("Error fetching collection status:", error);
-      toast.error(errorMessage);
+      handleApiError(error, "Failed to fetch collection status");
       setCollectionStatus(null);
     } finally {
       setLoadingStatus(false);
     }
   };
 
-  // Handle refresh button click
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      // Call APIs directly
-      const promises = [
-        fetchCollectionStatus(),
-        patsansthaAPI.viewData()
-      ];
-
+      const promises = [fetchCollectionStatus(), patsansthaAPI.viewData()];
       const [, freshDataResponse] = await Promise.all(promises);
 
-      // Notify parent with fresh data
       if (onRefreshData && typeof onRefreshData === "function") {
         onRefreshData(freshDataResponse?.data || freshDataResponse);
       }
     } catch (error) {
-      const errorMessage = handleApiError(error, "Failed to refresh data");
-      toast.error(errorMessage);
+      handleApiError(error, "Failed to refresh data");
     } finally {
       setRefreshing(false);
     }
   };
 
-  // Handle file upload for agent
   const handleFileUpload = async (agentno) => {
     const input = document.createElement("input");
     input.type = "file";
@@ -127,13 +179,13 @@ const AgentsTable = ({
       if (!file) return;
 
       if (!file.name.toLowerCase().endsWith(".txt")) {
-        toast.error("Please select a .txt file");
+        handleApiError("Please select a .txt file");
         return;
       }
 
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
-        toast.error("File size too large. Maximum size allowed is 5MB");
+        handleApiError("File size too large. Maximum size allowed is 5MB");
         return;
       }
 
@@ -151,33 +203,19 @@ const AgentsTable = ({
           }));
         }, 100);
 
-        const response = await patsansthaAPI.uploadAgentFile(agentno, formData);
+        await patsansthaAPI.uploadAgentFile(agentno, formData);
 
         clearInterval(progressInterval);
         setUploadProgress((prev) => ({ ...prev, [agentno]: 100 }));
 
-        const successMessage =
-          response?.message ||
-          `File uploaded successfully for Agent ${agentno}`;
-        toast.success(successMessage);
-
-        // Refresh data after upload
-        const refreshPromises = [
-          fetchCollectionStatus(),
-          patsansthaAPI.viewData()
-        ];
-
+        const refreshPromises = [fetchCollectionStatus(), patsansthaAPI.viewData()];
         const [, freshDataResponse] = await Promise.all(refreshPromises);
 
-        // Notify parent with fresh data
         if (onRefreshData && typeof onRefreshData === "function") {
           onRefreshData(freshDataResponse?.data || freshDataResponse);
         }
-
       } catch (error) {
-        const errorMessage = handleApiError(error, "Failed to upload file");
-        console.error("Upload error:", error);
-        toast.error(errorMessage);
+        handleApiError(error, "Upload failed");
       } finally {
         setUploadingAgent(null);
         setTimeout(() => {
@@ -193,15 +231,11 @@ const AgentsTable = ({
     input.click();
   };
 
-  // Handle download collection file
   const handleDownloadCollection = async (agentno) => {
     setDownloadingAgent(agentno);
     try {
       const today = new Date().toISOString().split("T")[0];
-      const fileContent = await patsansthaAPI.downloadAgentCollection(
-        agentno,
-        today
-      );
+      const fileContent = await patsansthaAPI.downloadAgentCollection(agentno, today);
 
       if (!fileContent) {
         throw new Error("No file content received from server");
@@ -213,9 +247,7 @@ const AgentsTable = ({
       const a = document.createElement("a");
       a.style.display = "none";
       a.href = url;
-      a.download = `${
-        patsansthaData?.patname || "collection"
-      }_${agentno}_${today}.txt`;
+      a.download = `${patsansthaData?.patname || "collection"}_${agentno}_${today}.txt`;
 
       document.body.appendChild(a);
       a.click();
@@ -223,29 +255,18 @@ const AgentsTable = ({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success("Collection file downloaded successfully");
-      
-      // Refresh collection status after download
       await fetchCollectionStatus();
-      
     } catch (error) {
-      const errorMessage = handleApiError(
-        error,
-        "Failed to download collection file"
-      );
-      console.error("Download error:", error);
-      toast.error(errorMessage);
+      handleApiError(error, "Download failed");
     } finally {
       setDownloadingAgent(null);
     }
   };
 
-  // Initialize component
   useEffect(() => {
     fetchCollectionStatus();
   }, []);
 
-  // Get collection info for specific agent
   const getAgentCollectionInfo = (agentno) => {
     if (!collectionStatus?.agents) return null;
     return collectionStatus.agents.find((agent) => agent.agentno === agentno);
@@ -262,16 +283,16 @@ const AgentsTable = ({
 
   return (
     <div>
-      {/* Header Section */}
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={closeErrorModal}
+        errorMessage={errorMessage}
+      />
+
+      {/* TOP BAR */}
       <div className="px-6 py-6 bg-white border-b border-gray-200">
         <div className="flex flex-col space-y-4">
-          {/* Page Title */}
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 flex items-center">Agent Management</h1>
-            <p className="text-gray-600 mt-1">View and manage agent collection data</p>
-          </div>
-          
-          {/* Controls Row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <div className="relative">
@@ -285,29 +306,23 @@ const AgentsTable = ({
                 />
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
-              {/* Manual Refresh Button */}
               <button
                 onClick={handleRefresh}
                 disabled={refreshing || loadingStatus}
                 className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${
-                  showRefreshButton 
-                    ? "bg-green-600 hover:bg-green-700 text-white" 
+                  showRefreshButton
+                    ? "bg-green-600 hover:bg-green-700 text-white"
                     : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 }`}
               >
-                <RefreshCw
-                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-                />
-                <span>
-                  {refreshing ? "Updating..." : showRefreshButton ? "Refresh" : "Refresh"}
-                </span>
+                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                <span>{refreshing ? "Updating..." : "Refresh"}</span>
               </button>
             </div>
           </div>
-          
-          {/* Status indicator */}
+
           {loadingStatus && (
             <div className="flex items-center space-x-2 text-blue-600 text-sm">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
@@ -317,7 +332,7 @@ const AgentsTable = ({
         </div>
       </div>
 
-      {/* Table */}
+      {/* TABLE */}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -379,10 +394,7 @@ const AgentsTable = ({
                       <Phone className="h-4 w-4 text-gray-400" />
                       <span className="text-gray-900">
                         {agent.mobileNumber
-                          ? `+91 ${agent.mobileNumber.slice(
-                              0,
-                              5
-                            )} ${agent.mobileNumber.slice(5)}`
+                          ? `+91 ${agent.mobileNumber.slice(0, 5)} ${agent.mobileNumber.slice(5)}`
                           : "Not provided"}
                       </span>
                     </div>
@@ -416,32 +428,26 @@ const AgentsTable = ({
                         </div>
                         {collectionInfo.hasData && (
                           <div className="text-xs text-gray-500">
-                            {collectionInfo.totalTransactions || 0}{" "}
-                            transactions
+                            {collectionInfo.totalTransactions || 0} transactions
                             <br />
                             {formatCurrency(collectionInfo.totalAmount || 0)}
                           </div>
                         )}
                         {collectionInfo.submittedAt && (
                           <div className="text-xs text-green-600">
-                            {new Date(
-                              collectionInfo.submittedAt
-                            ).toLocaleString()}
+                            {new Date(collectionInfo.submittedAt).toLocaleString()}
                           </div>
                         )}
                       </div>
                     ) : (
                       <div className="flex items-center justify-center space-x-2">
                         <div className="w-3 h-3 bg-gray-300 rounded-full animate-pulse"></div>
-                        <span className="text-gray-400 text-sm">
-                          Loading...
-                        </span>
+                        <span className="text-gray-400 text-sm">Loading...</span>
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap text-center">
                     <div className="flex items-center justify-center space-x-2">
-                      {/* File Upload Button */}
                       <button
                         onClick={() => handleFileUpload(agent.agentno)}
                         disabled={uploadingAgent === agent.agentno}
@@ -465,13 +471,10 @@ const AgentsTable = ({
                           <FileText className="h-4 w-4" />
                         )}
                       </button>
-                      
-                      {/* Download Collection Button */}
+
                       {collectionInfo?.submitted && collectionInfo?.hasData ? (
                         <button
-                          onClick={() =>
-                            handleDownloadCollection(agent.agentno)
-                          }
+                          onClick={() => handleDownloadCollection(agent.agentno)}
                           disabled={downloadingAgent === agent.agentno}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200 hover:scale-105 border border-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
                           title={
@@ -504,7 +507,7 @@ const AgentsTable = ({
         </table>
       </div>
 
-      {/* Empty State */}
+      {/* EMPTY STATE */}
       {filteredAgents.length === 0 && (
         <div className="text-center py-16 bg-white">
           <div className="mx-auto mb-6">
@@ -512,9 +515,7 @@ const AgentsTable = ({
               <Users className="h-10 w-10 text-gray-400" />
             </div>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">
-            No agents found
-          </h3>
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">No agents found</h3>
           <p className="text-gray-500 mb-8 text-base">
             {searchTerm
               ? "Try adjusting your search criteria to find agents."

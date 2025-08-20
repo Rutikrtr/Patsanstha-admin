@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { patsansthaAPI } from '../../../../services/api';
-import toast from 'react-hot-toast';
 import StatsCards from './components/StatsCards';
 import OrganizationInfo from './components/OrganizationInfo';
 
@@ -9,7 +8,6 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch data from API
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -24,30 +22,24 @@ const DashboardPage = () => {
       }
     } catch (error) {
       console.error('Error fetching patsanstha data:', error);
-      const errorMessage = error.message || 'Failed to fetch dashboard data';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      setError(error.message || 'Failed to fetch dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
-  // Initialize data on component mount
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Loading state
   if (loading) {
     return (
       <div className="space-y-8">
-        {/* Page Header */}
         <div>
           <h1 className="text-xl font-semibold text-gray-900 flex items-center">Dashboard Overview</h1>
           <p className="text-gray-600">Welcome to your management dashboard</p>
         </div>
 
-        {/* Loading Skeleton */}
         <div className="flex items-center justify-center py-16">
           <div className="flex items-center space-x-3">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
@@ -58,17 +50,14 @@ const DashboardPage = () => {
     );
   }
 
-  // Error state
-  if (error && !patsansthaData) {
+  if (error) {
     return (
       <div className="space-y-8">
-        {/* Page Header */}
         <div>
           <h1 className="text-xl font-semibold text-gray-900 flex items-center">Dashboard Overview</h1>
           <p className="text-gray-600">Welcome to your management dashboard</p>
         </div>
 
-        {/* Error State */}
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <div className="text-red-500 text-lg mb-2">⚠️ Error</div>
@@ -87,16 +76,12 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
       <div>
         <h1 className="text-xl font-semibold text-gray-900 flex items-center">Dashboard Overview</h1>
         <p className="text-gray-600">Welcome to your management dashboard</p>
       </div>
 
-      {/* Stats Cards */}
       <StatsCards patsansthaData={patsansthaData} />
-
-      {/* Organization Info */}
       <OrganizationInfo patsansthaData={patsansthaData} />
     </div>
   );

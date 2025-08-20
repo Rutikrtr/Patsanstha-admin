@@ -9,7 +9,6 @@ import {
   User,
   Calendar,
   TrendingUp,
-  AlertTriangle,
   X,
 } from "lucide-react";
 import { formatCurrency } from "../utils/formatUtils";
@@ -18,39 +17,36 @@ import LoadingSpinner from "./LoadingSpinner";
 import ErrorDisplay from "./ErrorDisplay";
 import EmptyState from "./EmptyState";
 
-const CustomerTable = ({ 
-  searchTerm, 
-  onSearchChange, 
+const CustomerTable = ({
+  searchTerm,
+  onSearchChange,
   showInitialLoading = true,
   parentLoading = false,
-  parentError = null
+  parentError = null,
 }) => {
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
   const [showRefreshButton, setShowRefreshButton] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
   const [retryCount, setRetryCount] = useState(0);
-  
-  // Filter states
-  const [selectedAgent, setSelectedAgent] = useState('');
+
+  const [selectedAgent, setSelectedAgent] = useState("");
 
   const {
     patsansthaData,
     transactionData,
     loading,
     error,
-    handleRefreshData
+    handleRefreshData,
   } = useCustomerReportData();
 
   // Auto-refresh logic
   useEffect(() => {
     const interval = setInterval(() => {
-      const timeSinceLastRefresh = Date.now() - lastRefresh;
-      if (timeSinceLastRefresh > 30000) { // 30 seconds
+      if (Date.now() - lastRefresh > 10000) {
         setShowRefreshButton(true);
       }
-    }, 10000); // Check every 10 seconds
-
+    }, 10000);
     return () => clearInterval(interval);
   }, [lastRefresh]);
 
@@ -61,103 +57,73 @@ const CustomerTable = ({
       setShowRefreshButton(false);
       setRetryCount(0);
     } catch (err) {
-      console.error('Refresh failed:', err);
-      setRetryCount(prev => prev + 1);
+      console.error("Refresh failed:", err);
+      setRetryCount((prev) => prev + 1);
     }
   }, [handleRefreshData]);
 
-  const handleRetry = useCallback(() => {
-    handleRefreshClick();
-  }, [handleRefreshClick]);
-
-  const handleClearSearch = useCallback(() => {
-    onSearchChange('');
-  }, [onSearchChange]);
-
-  // Get all transactions with error handling
   const allTransactions = useMemo(() => {
-    try {
-      if (!transactionData?.transactions || !Array.isArray(transactionData.transactions)) {
-        return [];
-      }
-      return transactionData.transactions;
-    } catch (err) {
-      console.error('Error processing transactions:', err);
+    if (
+      !transactionData?.transactions ||
+      !Array.isArray(transactionData.transactions)
+    ) {
       return [];
     }
+    return transactionData.transactions;
   }, [transactionData]);
 
-  // Get unique agents for filter dropdown
   const uniqueAgents = useMemo(() => {
-    try {
-      const agents = new Map();
-      allTransactions.forEach(transaction => {
-        if (transaction?.agentId?.agentname && transaction?.agentId?.agentno) {
-          const key = `${transaction.agentId.agentno}`;
-          if (!agents.has(key)) {
-            agents.set(key, {
-              agentno: transaction.agentId.agentno,
-              agentname: transaction.agentId.agentname,
-              count: 0
-            });
-          }
-          agents.get(key).count++;
+    const agents = new Map();
+    allTransactions.forEach((transaction) => {
+      if (transaction?.agentId?.agentname && transaction?.agentId?.agentno) {
+        const key = `${transaction.agentId.agentno}`;
+        if (!agents.has(key)) {
+          agents.set(key, {
+            agentno: transaction.agentId.agentno,
+            agentname: transaction.agentId.agentname,
+            count: 0,
+          });
         }
-      });
-      return Array.from(agents.values()).sort((a, b) => a.agentname.localeCompare(b.agentname));
-    } catch (err) {
-      console.error('Error processing agents:', err);
-      return [];
-    }
+        agents.get(key).count++;
+      }
+    });
+    return Array.from(agents.values()).sort((a, b) =>
+      a.agentname.localeCompare(b.agentname)
+    );
   }, [allTransactions]);
 
-  // Filter transactions with improved search and agent filter
   const filteredTransactions = useMemo(() => {
-    try {
-      let filtered = allTransactions;
+    let filtered = allTransactions;
 
-      // Text search filter
-      if (searchTerm.trim()) {
-        const searchLower = searchTerm.toLowerCase().trim();
-        filtered = filtered.filter((transaction) => {
-          if (!transaction) return false;
-          
-          const searchFields = [
-            transaction.name?.toLowerCase(),
-            transaction.accountNo?.toLowerCase(),
-            transaction.mobileNumber?.toString(),
-            transaction.agentId?.agentname?.toLowerCase(),
-            transaction.agentId?.agentno?.toLowerCase()
-          ];
-
-          return searchFields.some(field => 
-            field && field.includes(searchLower)
-          );
-        });
-      }
-
-      // Agent filter
-      if (selectedAgent) {
-        filtered = filtered.filter(transaction => 
-          transaction.agentId?.agentno === selectedAgent
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter((transaction) => {
+        if (!transaction) return false;
+        const searchFields = [
+          transaction.name?.toLowerCase(),
+          transaction.accountNo?.toLowerCase(),
+          transaction.mobileNumber?.toString(),
+          transaction.agentId?.agentname?.toLowerCase(),
+          transaction.agentId?.agentno?.toLowerCase(),
+        ];
+        return searchFields.some(
+          (field) => field && field.includes(searchLower)
         );
-      }
-
-      return filtered;
-    } catch (err) {
-      console.error('Error filtering transactions:', err);
-      return allTransactions;
+      });
     }
+
+    if (selectedAgent) {
+      filtered = filtered.filter((t) => t.agentId?.agentno === selectedAgent);
+    }
+    return filtered;
   }, [allTransactions, searchTerm, selectedAgent]);
 
-  // Sort transactions with improved error handling
   const sortedTransactions = useMemo(() => {
     try {
       return [...filteredTransactions].sort((a, b) => {
         let aValue = a?.[sortField];
         let bValue = b?.[sortField];
 
-        // Handle nested fields
         if (sortField === "agentName") {
           aValue = a?.agentId?.agentname || "";
           bValue = b?.agentId?.agentname || "";
@@ -166,11 +132,9 @@ const CustomerTable = ({
           bValue = b?.agentId?.agentno || "";
         }
 
-        // Handle null/undefined values
         if (aValue == null) aValue = "";
         if (bValue == null) bValue = "";
 
-        // Handle numeric fields
         if (sortField === "prevBalance" || sortField === "collAmt") {
           aValue = parseFloat(aValue) || 0;
           bValue = parseFloat(bValue) || 0;
@@ -182,80 +146,65 @@ const CustomerTable = ({
         const comparison = aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
         return sortDirection === "asc" ? comparison : -comparison;
       });
-    } catch (err) {
-      console.error('Error sorting transactions:', err);
+    } catch {
       return filteredTransactions;
     }
   }, [filteredTransactions, sortField, sortDirection]);
 
-  const handleSort = useCallback((field) => {
+  const handleSort = (field) => {
     if (sortField === field) {
-      setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
       setSortDirection("asc");
     }
-  }, [sortField]);
+  };
 
-  const getSortIcon = useCallback((field) => {
+  const getSortIcon = (field) => {
     if (sortField !== field) return "↕️";
     return sortDirection === "asc" ? "↑" : "↓";
-  }, [sortField, sortDirection]);
+  };
 
-  const formatDate = useCallback((dateString) => {
-    try {
-      if (!dateString) return 'N/A';
-      return new Date(dateString).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    } catch (err) {
-      console.error('Error formatting date:', err);
-      return 'Invalid Date';
-    }
-  }, []);
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
   const totalCollection = useMemo(() => {
-    try {
-      return sortedTransactions.reduce(
-        (sum, transaction) => sum + (parseFloat(transaction?.collAmt) || 0),
-        0
-      );
-    } catch (err) {
-      console.error('Error calculating total collection:', err);
-      return 0;
-    }
+    return sortedTransactions.reduce(
+      (sum, t) => sum + (parseFloat(t?.collAmt) || 0),
+      0
+    );
   }, [sortedTransactions]);
 
-  const clearAgentFilter = useCallback(() => {
-    setSelectedAgent('');
-  }, []);
+  const clearAgentFilter = () => setSelectedAgent("");
 
-  // Determine which loading/error state to show
-  const isInitialLoad = (loading || parentLoading) && allTransactions.length === 0;
+  const isInitialLoad =
+    (loading || parentLoading) && allTransactions.length === 0;
   const hasError = (error || parentError) && allTransactions.length === 0;
 
-  // Loading state - only show if parent allows and it's initial load
   if (isInitialLoad && showInitialLoading) {
     return (
       <div className="bg-white rounded-xl shadow-sm h-96">
-        <LoadingSpinner 
-          size="large" 
-          message="Loading transactions..." 
+        <LoadingSpinner
+          size="large"
+          message="Loading transactions..."
           className="h-full"
         />
       </div>
     );
   }
 
-  // Error state - only show if parent allows and no data exists
   if (hasError && showInitialLoading) {
     return (
       <div className="bg-white rounded-xl shadow-sm h-96">
-        <ErrorDisplay 
+        <ErrorDisplay
           error={error || parentError}
-          onRetry={handleRetry}
+          onRetry={handleRefreshClick}
           title="Failed to load transactions"
           className="h-full"
         />
@@ -264,89 +213,59 @@ const CustomerTable = ({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm flex flex-col h-full max-h-[calc(100vh-120px)] w-full">
-      {/* Sticky Header Section */}
-      <div className="sticky top-0 z-10 bg-white rounded-t-xl border-b border-gray-200">
-        {/* Table Header */}
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                Transactions
-                {(loading || parentLoading) && allTransactions.length > 0 && (
-                  <div className="ml-2 animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                )}
-              </h2>
-              <p className="text-gray-600 mt-1">
-                Customer transaction data
-                {lastRefresh && (
-                  <span className="text-xs ml-2">
-                    (Last updated: {new Date(lastRefresh).toLocaleTimeString()})
-                  </span>
-                )}
-              </p>
-            </div>
+    <div className="bg-white rounded-xl shadow-sm flex flex-col h-full max-h-[calc(100vh-220px)] max-w-6xl mx-auto">
+      {/* Refresh */}
+      <div className="px-3 py-1 flex items-center justify-end border-b border-gray-200 bg-gray-50 rounded-t-xl">
+        <button
+          onClick={handleRefreshClick}
+          disabled={!showRefreshButton || loading || parentLoading}
+          className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors
+            ${
+              showRefreshButton
+                ? "bg-green-600 text-white hover:bg-green-700"
+                : "bg-gray-200 text-gray-500 cursor-not-allowed"
+            }
+            ${loading || parentLoading ? "opacity-50" : ""}`}
+        >
+          <TrendingUp className="h-3 w-3 mr-1" />
+          {loading || parentLoading ? "Refreshing..." : "Refresh"}
+        </button>
+      </div>
 
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <span>{sortedTransactions.length} Transactions</span>
-                {retryCount > 0 && (
-                  <span className="text-yellow-600">({retryCount} retries)</span>
-                )}
-              </div>
-
-              {showRefreshButton && (
-                <button
-                  onClick={handleRefreshClick}
-                  disabled={loading || parentLoading}
-                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors animate-pulse disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  {(loading || parentLoading) ? 'Refreshing...' : 'Refresh'}
-                </button>
-              )}
-            </div>
+      {/* Top Controls */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+        <div className="p-3 flex flex-wrap gap-3 items-center justify-between">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, account, mobile, or agent..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
+              disabled={loading || parentLoading}
+              className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
           </div>
 
-          {/* Search and Agent Filter Section */}
-          <div className="flex items-center space-x-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by customer name, account number, mobile, or agent name..."
-                value={searchTerm}
-                onChange={(e) => onSearchChange(e.target.value)}
-                disabled={loading || parentLoading}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
-              />
-              {(loading || parentLoading) && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                </div>
-              )}
-            </div>
-            
-            <div className="w-64">
-              <select
-                value={selectedAgent}
-                onChange={(e) => setSelectedAgent(e.target.value)}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Agents</option>
-                {uniqueAgents.map((agent) => (
-                  <option key={agent.agentno} value={agent.agentno}>
-                    {agent.agentname} ({agent.agentno})
-                  </option>
-                ))}
-              </select>
-            </div>
-
+          {/* Agent Filter */}
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedAgent}
+              onChange={(e) => setSelectedAgent(e.target.value)}
+              className="px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            >
+              <option value="">All Agents</option>
+              {uniqueAgents.map((agent) => (
+                <option key={agent.agentno} value={agent.agentno}>
+                  {agent.agentname} ({agent.agentno})
+                </option>
+              ))}
+            </select>
             {selectedAgent && (
               <button
                 onClick={clearAgentFilter}
-                className="flex items-center px-3 py-3 text-gray-600 hover:text-red-600 transition-colors"
-                title="Clear agent filter"
+                className="text-gray-600 hover:text-red-600"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -354,137 +273,146 @@ const CustomerTable = ({
           </div>
         </div>
 
-        {/* Sticky Table Header */}
-        <div className="bg-gray-50 border-b border-gray-200">
-          <div className="w-full">
-            <div className="flex">
-              {[
-                { key: "accountNo", label: "Account No", icon: CreditCard, width: "w-48" },
-                { key: "name", label: "Customer Name", icon: User, width: "w-56" },
-                { key: "mobileNumber", label: "Mobile", icon: Phone, width: "w-48", sortable: false },
-                { key: "collAmt", label: "Collection", icon: IndianRupee, width: "w-48" },
-                { key: "agentName", label: "Agent", icon: Users, width: "w-48", sortable: false },
-                { key: "time", label: "Time", icon: Calendar, width: "w-48" },
-              ].map(({ key, label, icon: Icon, width, sortable = true }) => (
-                <div
-                  key={key}
-                  className={`flex-none ${width} px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                    sortable ? 'cursor-pointer hover:bg-gray-100' : ''
-                  }`}
-                  onClick={sortable ? () => handleSort(key) : undefined}
-                >
-                  <div className="flex items-center space-x-1">
-                    <Icon className="h-4 w-4" />
-                    <span>{label}</span>
-                    {sortable && (
-                      <span className="text-gray-400">
-                        {getSortIcon(key)}
-                      </span>
-                    )}
-                  </div>
+        {/* Table Header */}
+        <div className="bg-gray-50 border-t border-gray-200">
+          <div className="flex">
+            {[
+              {
+                key: "accountNo",
+                label: "Account No",
+                icon: CreditCard,
+                minWidth: "min-w-[120px]",
+              },
+              {
+                key: "name",
+                label: "Customer Name",
+                icon: User,
+                minWidth: "min-w-[160px]",
+              },
+              {
+                key: "mobileNumber",
+                label: "Mobile",
+                icon: Phone,
+                minWidth: "min-w-[120px]",
+                sortable: false,
+              },
+              {
+                key: "collAmt",
+                label: "Collection",
+                icon: IndianRupee,
+                minWidth: "min-w-[120px]",
+              },
+              {
+                key: "agentName",
+                label: "Agent",
+                icon: Users,
+                minWidth: "min-w-[140px]",
+                sortable: false,
+              },
+              {
+                key: "time",
+                label: "Time",
+                icon: Calendar,
+                minWidth: "min-w-[140px]",
+              },
+            ].map(({ key, label, icon: Icon, minWidth, sortable = true }) => (
+              <div
+                key={key}
+                className={`flex-1 ${minWidth} px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  sortable ? "cursor-pointer hover:bg-gray-100" : ""
+                }`}
+                onClick={sortable ? () => handleSort(key) : undefined}
+              >
+                <div className="flex items-center space-x-1">
+                  <Icon className="h-3 w-3" />
+                  <span>{label}</span>
+                  {sortable && (
+                    <span className="text-gray-400">{getSortIcon(key)}</span>
+                  )}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Scrollable Table Body */}
+      {/* Table Body */}
       <div className="flex-1 overflow-y-auto">
-        <div className="w-full bg-white">
+        <div className="divide-y divide-gray-200">
           {sortedTransactions.length === 0 ? (
             <EmptyState
-              type={searchTerm || selectedAgent ? 'no-search-results' : 'no-data'}
+              type={searchTerm || selectedAgent ? "no-search-results" : "no-data"}
               searchTerm={searchTerm}
-              onClearSearch={searchTerm || selectedAgent ? () => { onSearchChange(''); setSelectedAgent(''); } : undefined}
+              onClearSearch={
+                searchTerm || selectedAgent
+                  ? () => {
+                      onSearchChange("");
+                      setSelectedAgent("");
+                    }
+                  : undefined
+              }
             />
           ) : (
-            <div className="divide-y divide-gray-200">
-              {sortedTransactions.map((transaction, index) => {
-                if (!transaction) return null;
-                
-                return (
-                  <div
-                    key={`${transaction._id || index}-${index}`}
-                    className="flex hover:bg-gray-50 transition-colors duration-150"
-                  >
-                    <div className="flex-none w-48 px-6 py-2">
-                      <div className="flex items-center">
-                        <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center mr-2">
-                          <CreditCard className="h-3 w-3 text-blue-600" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-900 truncate">
-                          {transaction.accountNo || 'N/A'}
-                        </span>
+            sortedTransactions.map((t, i) => (
+              <div key={t._id || i} className="flex hover:bg-gray-50">
+                <div className="flex-1 min-w-[120px] px-4 py-2">
+                  <span className="text-sm font-medium">
+                    {t.accountNo || "N/A"}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-[160px] px-4 py-2">
+                  <span className="text-sm font-medium">
+                    {t.name || "Unknown"}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-[120px] px-4 py-2">
+                  {t.mobileNumber || "N/A"}
+                </div>
+                <div className="flex-1 min-w-[120px] px-4 py-2 text-green-600 font-medium">
+                  {formatCurrency(t.collAmt || 0)}
+                </div>
+                <div className="flex-1 min-w-[140px] px-4 py-2">
+                  {t.agentId?.agentname || "Unknown"}
+                </div>
+                <div className="flex-1 min-w-[140px] px-4 py-2">
+                  {t.time ? (
+                    <>
+                      <div className="text-sm">{t.time}</div>
+                      <div className="text-xs text-gray-400">
+                        {formatDate(t.date)}
                       </div>
-                    </div>
-                    <div className="flex-none w-56 px-6 py-2">
-                      <div className="text-sm font-medium text-gray-900 truncate">
-                        {transaction.name || 'Unknown'}
-                      </div>
-                    </div>
-                    <div className="flex-none w-48 px-6 py-2">
-                      <div className="flex items-center">
-                        <Phone className="h-3 w-3 text-gray-400 mr-2 flex-shrink-0" />
-                        <span className="text-sm text-gray-900 truncate">
-                          {transaction.mobileNumber || "N/A"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex-none w-48 px-6 py-2">
-                      <div className="flex items-center">
-                        <span
-                          className={`text-sm font-medium truncate ${
-                            (transaction.collAmt || 0) > 0
-                              ? "text-green-600"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          {formatCurrency(transaction.collAmt || 0)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex-none w-48 px-6 py-2">
-                      <div className="text-sm font-medium text-gray-900 truncate">
-                        {transaction.agentId?.agentname || 'Unknown'}
-                      </div>
-                    </div>
-                    <div className="flex-none w-48 px-6 py-2">
-                      <div className="text-sm text-gray-600">
-                        {transaction.time ? (
-                          <div>
-                            <div className="truncate">{transaction.time}</div>
-                            <div className="text-xs text-gray-400 truncate">
-                              {formatDate(transaction.date)}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">Not collected</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-gray-400 text-sm">
+                        Not collected
+                      </span>
+                      <div className="text-xs invisible">placeholder</div>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
 
-      {/* Sticky Footer */}
+      {/* Footer */}
       {sortedTransactions.length > 0 && (
-        <div className="sticky bottom-0 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>
-              Showing {sortedTransactions.length} of {allTransactions.length} transactions
-              {(searchTerm || selectedAgent) && ` (filtered)`}
-            </span>
-            <div className="flex items-center space-x-4">
-              <span>Total Collection: </span>
-              <span className="font-semibold text-green-600">
-                {formatCurrency(totalCollection)}
+        <div className="sticky bottom-0 px-4 py-2 border-t border-gray-200 bg-gray-50 rounded-b-xl flex flex-wrap justify-between items-center text-sm text-gray-600 gap-3">
+          <span>
+            Showing {sortedTransactions.length} of {allTransactions.length}
+            {(searchTerm || selectedAgent) && ` (filtered)`}
+          </span>
+          <div className="flex items-center gap-4">
+            {lastRefresh && (
+              <span className="text-xs text-gray-500">
+                Updated: {new Date(lastRefresh).toLocaleTimeString()}
               </span>
-            </div>
+            )}
+            <span className="font-semibold text-green-600">
+              Total: {formatCurrency(totalCollection)}
+            </span>
           </div>
         </div>
       )}

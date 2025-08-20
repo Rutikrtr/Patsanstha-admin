@@ -1,70 +1,60 @@
-import React, { useState } from 'react';
-import { User, Database, ChevronRight, LogOut, Check, AlertTriangle } from 'lucide-react';
-import { useDispatch, useSelector } from 'react-redux';
-import { authAPI } from '../api/../../../../services/api';
-import AgentManagement from './components/AgentManagement';
+import React, { useState } from "react";
+import {
+  User,
+  Database,
+  ChevronRight,
+  LogOut,
+  AlertTriangle,
+} from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { authAPI } from "../api/../../../../services/api";
+import AgentManagement from "./components/AgentManagement";
 
-const SettingsPage = ({ loading }) => {
+const SettingsPage = () => {
   const patsansthaData = useSelector((state) => state.auth.user);
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState("profile");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [showLogoutToast, setShowLogoutToast] = useState(false);
-  const [fadeOut, setFadeOut] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // NEW
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const confirmLogout = async () => {
     try {
       setIsLoggingOut(true);
-      setShowLogoutConfirm(false); // Hide confirmation popup
-
+      setShowLogoutConfirm(false);
       await authAPI.logoutPatsanstha(dispatch);
-
-      setShowLogoutToast(true);
-
-      setTimeout(() => {
-        setFadeOut(true);
-      }, 1000);
-
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 1800);
+      window.location.href = "/login";
     } catch (error) {
-      console.error('Logout error:', error);
-      setShowLogoutToast(true);
-      setTimeout(() => {
-        setFadeOut(true);
-      }, 1000);
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 1800);
+      console.error("Logout error:", error);
+      window.location.href = "/login";
     }
   };
 
   const settingsTabs = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'data', label: 'Agent Management', icon: Database }
+    { id: "profile", label: "Profile", icon: User },
+    { id: "data", label: "Agent Management", icon: Database },
   ];
 
   const Profile = () => (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">Organization Information</h2>
+      <h2 className="text-xl font-semibold text-gray-900">
+        Organization Information
+      </h2>
       <div className="space-y-6">
         <div className="flex justify-between border-b border-gray-200 pb-4 mb-4">
           <span className="text-gray-600 font-medium">Organization Name</span>
-          <span className="text-gray-900">{patsansthaData?.patname || '-'}</span>
+          <span className="text-gray-900">{patsansthaData?.patname || "-"}</span>
         </div>
         <div className="flex justify-between border-b border-gray-200 pb-4 mb-4">
           <span className="text-gray-600 font-medium">Full Name</span>
-          <span className="text-gray-900">{patsansthaData?.fullname || '-'}</span>
+          <span className="text-gray-900">{patsansthaData?.fullname || "-"}</span>
         </div>
         <div className="flex justify-between border-b border-gray-200 pb-4 mb-4">
           <span className="text-gray-600 font-medium">Contact Number</span>
-          <span className="text-gray-900">{patsansthaData?.mobilenumber || '-'}</span>
+          <span className="text-gray-900">{patsansthaData?.mobilenumber || "-"}</span>
         </div>
         <div className="flex justify-between border-b border-gray-200 pb-4 mb-4">
           <span className="text-gray-600 font-medium">Address</span>
-          <span className="text-gray-900">{patsansthaData?.address || '-'}</span>
+          <span className="text-gray-900">{patsansthaData?.address || "-"}</span>
         </div>
       </div>
     </div>
@@ -72,9 +62,9 @@ const SettingsPage = ({ loading }) => {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'profile':
+      case "profile":
         return <Profile />;
-      case 'data':
+      case "data":
         return <AgentManagement patsansthaData={patsansthaData} />;
       default:
         return null;
@@ -82,36 +72,35 @@ const SettingsPage = ({ loading }) => {
   };
 
   return (
-    <div
-      className={`space-y-8 relative transition-opacity duration-700 ${
-        fadeOut ? 'opacity-0' : 'opacity-100'
-      }`}
-    >
-      {/* Logout Success Toast */}
-      {showLogoutToast && (
-        <div className="fixed top-4 right-4 z-50 flex items-center p-4 rounded-lg shadow-lg bg-green-500 text-white animate-fadeIn">
-          <Check className="h-5 w-5 mr-2" />
-          <span className="font-medium">Logged out successfully!</span>
-        </div>
-      )}
-
-      {/* Logout Confirmation Modal */}
+    <div className="space-y-8 relative">
+      {/* ✅ Fullscreen Logout Confirmation Modal (Always on Top) */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 animate-fadeIn">
-          <div className="bg-white p-6 rounded-xl shadow-xl w-80 text-center">
-            <AlertTriangle className="mx-auto text-yellow-500 h-10 w-10 mb-3" />
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h2>
-            <p className="text-gray-600 mb-4">Are you sure you want to log out?</p>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60">
+          <div className="bg-white w-full max-w-md mx-auto rounded-2xl shadow-2xl p-8 relative">
+            {/* Icon */}
+            <AlertTriangle className="mx-auto text-yellow-500 h-12 w-12 mb-4" />
+
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
+              Confirm Logout
+            </h2>
+
+            {/* Message */}
+            <p className="text-gray-600 text-center mb-6">
+              Are you sure you want to log out of your account?
+            </p>
+
+            {/* Actions */}
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+                className="px-5 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmLogout}
-                className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white"
+                className="px-5 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition"
               >
                 Yes, Logout
               </button>
@@ -136,8 +125,8 @@ const SettingsPage = ({ loading }) => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                   activeTab === tab.id
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`}
               >
                 <div className="flex items-center">
@@ -161,12 +150,12 @@ const SettingsPage = ({ loading }) => {
       {/* Logout Button */}
       <div className="fixed bottom-12 right-12 z-40">
         <button
-          onClick={() => setShowLogoutConfirm(true)} // Show confirmation modal
+          onClick={() => setShowLogoutConfirm(true)}
           disabled={isLoggingOut}
           className={`flex items-center px-4 py-3 rounded-lg shadow-lg transition-all duration-200 ${
             isLoggingOut
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-red-500 hover:bg-red-600 hover:shadow-xl transform hover:scale-105'
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-red-500 hover:bg-red-600 hover:shadow-xl transform hover:scale-105"
           } text-white font-medium`}
         >
           {isLoggingOut ? (
@@ -182,17 +171,6 @@ const SettingsPage = ({ loading }) => {
           )}
         </button>
       </div>
-
-      {/* Animation CSS */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

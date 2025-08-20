@@ -2,7 +2,6 @@ import React from 'react';
 import { Building2, User, Phone, Calendar, Shield } from 'lucide-react';
 
 const OrganizationInfo = ({ patsansthaData }) => {
-  // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return 'Not available';
     try {
@@ -16,7 +15,6 @@ const OrganizationInfo = ({ patsansthaData }) => {
     }
   };
 
-  // Format mobile number
   const formatMobileNumber = (number) => {
     if (!number) return 'Not provided';
     return `+91 ${number.slice(0, 5)} ${number.slice(5)}`;
@@ -27,7 +25,6 @@ const OrganizationInfo = ({ patsansthaData }) => {
       <h2 className="text-xl font-semibold text-gray-900 mb-6">Patsanstha Information</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Organization Name */}
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
             <Building2 className="h-6 w-6 text-blue-600" />
@@ -40,7 +37,6 @@ const OrganizationInfo = ({ patsansthaData }) => {
           </div>
         </div>
         
-        {/* Full Name */}
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
             <User className="h-6 w-6 text-green-600" />
@@ -53,7 +49,6 @@ const OrganizationInfo = ({ patsansthaData }) => {
           </div>
         </div>
         
-        {/* Mobile Number */}
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
             <Phone className="h-6 w-6 text-purple-600" />
@@ -66,7 +61,6 @@ const OrganizationInfo = ({ patsansthaData }) => {
           </div>
         </div>
 
-        {/* Status */}
         <div className="flex items-center space-x-4">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
             patsansthaData?.status === 'active' ? 'bg-green-100' : 'bg-red-100'
@@ -85,7 +79,6 @@ const OrganizationInfo = ({ patsansthaData }) => {
           </div>
         </div>
 
-        {/* Created Date */}
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
             <Calendar className="h-6 w-6 text-orange-600" />
@@ -99,7 +92,6 @@ const OrganizationInfo = ({ patsansthaData }) => {
         </div>
       </div>
 
-      {/* Admin Message Section - if available */}
       {patsansthaData?.message && (
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <h3 className="text-sm font-medium text-blue-900 mb-2">Latest Message</h3>

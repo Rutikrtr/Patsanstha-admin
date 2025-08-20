@@ -2,14 +2,12 @@ import React from 'react';
 import { Users, Shield, UserPlus } from 'lucide-react';
 
 const StatsCards = ({ patsansthaData }) => {
-  // Safe data extraction with fallbacks
   const totalAgents = patsansthaData?.agents?.length || 0;
   const agentLimit = patsansthaData?.noOfAgent || 0;
   const availableSlots = Math.max(0, agentLimit - totalAgents);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      {/* Total Agents Card */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
         <div className="flex items-center justify-between">
           <div>
@@ -23,7 +21,6 @@ const StatsCards = ({ patsansthaData }) => {
         </div>
       </div>
       
-      {/* Agent Limit Card */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
         <div className="flex items-center justify-between">
           <div>
@@ -37,7 +34,6 @@ const StatsCards = ({ patsansthaData }) => {
         </div>
       </div>
       
-      {/* Available Slots Card */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
         <div className="flex items-center justify-between">
           <div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 // Components
 import Sidebar from "./components/Sidebar.jsx";
@@ -25,29 +25,17 @@ document.body.style.fontFamily = '"DM Sans", sans-serif';
 const Patsanstha = () => {
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
-  const navigate = useNavigate();
 
   const hideSidebar = location.pathname === "/login";
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
-  const [showOverlay, setShowOverlay] = useState(false);
-  const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setInitialLoading(false), 800);
     return () => clearTimeout(timer);
   }, []);
-
-  // Function to trigger logout fade and redirect
-  const triggerLogout = () => {
-    setShowOverlay(false); // Close any loaders
-    setFadeOut(true);
-    setTimeout(() => {
-      navigate("/login");
-    }, 800); // matches fade duration
-  };
 
   const renderContent = () => {
     switch (activeSection) {
@@ -58,7 +46,7 @@ const Patsanstha = () => {
       case "reports":
         return <CustomerReport />;
       case "settings":
-        return <SettingsPage triggerLogout={triggerLogout} />;
+        return <SettingsPage />;
       default:
         return <DashboardPage />;
     }
@@ -70,9 +58,7 @@ const Patsanstha = () => {
 
   return (
     <div
-      className={`h-screen p-4 lg:p-6 transition-opacity duration-700 ${
-        fadeOut ? "opacity-0" : "opacity-100"
-      }`}
+      className="h-screen p-4 lg:p-6"
       style={{
         fontFamily: '"DM Sans", sans-serif',
         background: "#6739B7",
@@ -104,15 +90,6 @@ const Patsanstha = () => {
             <div className="p-6 lg:p-8">{renderContent()}</div>
           </main>
         </div>
-
-        {showOverlay && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
-              <span className="text-gray-700">Processing...</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

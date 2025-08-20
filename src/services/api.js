@@ -22,7 +22,7 @@ apiClient.interceptors.response.use(
   async (error) => {
     // If it's a network or timeout error, keep these special messages
     if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
-      return Promise.reject(new Error('Network error. Please check your internet connection.'));
+      return Promise.reject(new Error('Please check your internet connection.'));
     }
     if (error.code === 'ECONNABORTED') {
       return Promise.reject(new Error('Request timeout. Please try again.'));

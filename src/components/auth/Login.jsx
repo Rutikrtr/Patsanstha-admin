@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, EyeOff, Shield } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Navigate, useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { loginSuccess } from '../../store/authSlice';
 import { authAPI } from '../../services/api';
 import PigmyProLogo from '../assets/PigmyPro.png';
@@ -13,6 +12,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
@@ -31,6 +31,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg('');
     try {
       const response = await authAPI.loginPatsanstha(mobilenumber, password);
       dispatch(
@@ -42,7 +43,7 @@ const Login = () => {
       );
       navigate('/dashboard');
     } catch (error) {
-      toast.error(error.message || 'Login failed');
+      setErrorMsg(error.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -111,6 +112,17 @@ const Login = () => {
                 </div>
               </div>
 
+              {/* Error Message (reserved space, smooth fade) */}
+              <div className="min-h-[24px] flex items-center">
+                <span
+                  className={`text-red-600 text-sm font-medium transition-opacity duration-300 ${
+                    errorMsg ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                  {errorMsg || '‎'}
+                </span>
+              </div>
+
               {/* Login Button */}
               <div className="pt-2">
                 <button
@@ -131,9 +143,6 @@ const Login = () => {
             </form>
           </div>
         </div>
-
-
-
 
         {/* Right Panel - Image */}
         <div className="hidden lg:flex flex-1 relative">
