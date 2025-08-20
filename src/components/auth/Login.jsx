@@ -40,7 +40,6 @@ const Login = () => {
           userType: 'patsanstha',
         })
       );
-      toast.success('Login successful');
       navigate('/dashboard');
     } catch (error) {
       toast.error(error.message || 'Login failed');
