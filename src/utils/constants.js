@@ -1,4 +1,4 @@
-export const API_BASE = 'http://localhost:7001/api/v1';
+export const API_BASE = 'http://13.203.181.17:7001/api/v1';
 
 export const USER_TYPES = {
   SUPERADMIN: 'superadmin',

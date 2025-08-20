@@ -364,7 +364,7 @@ const CustomerTable = ({
                 { key: "mobileNumber", label: "Mobile", icon: Phone, width: "w-48", sortable: false },
                 { key: "collAmt", label: "Collection", icon: IndianRupee, width: "w-48" },
                 { key: "agentName", label: "Agent", icon: Users, width: "w-48", sortable: false },
-                { key: "time", label: "Time", icon: Calendar, width: "w-48", sortable: false },
+                { key: "time", label: "Time", icon: Calendar, width: "w-48" },
               ].map(({ key, label, icon: Icon, width, sortable = true }) => (
                 <div
                   key={key}
@@ -408,30 +408,30 @@ const CustomerTable = ({
                     key={`${transaction._id || index}-${index}`}
                     className="flex hover:bg-gray-50 transition-colors duration-150"
                   >
-                    <div className="flex-none w-48 px-6 py-4">
+                    <div className="flex-none w-48 px-6 py-2">
                       <div className="flex items-center">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                          <CreditCard className="h-4 w-4 text-blue-600" />
+                        <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center mr-2">
+                          <CreditCard className="h-3 w-3 text-blue-600" />
                         </div>
                         <span className="text-sm font-medium text-gray-900 truncate">
                           {transaction.accountNo || 'N/A'}
                         </span>
                       </div>
                     </div>
-                    <div className="flex-none w-56 px-6 py-4">
+                    <div className="flex-none w-56 px-6 py-2">
                       <div className="text-sm font-medium text-gray-900 truncate">
                         {transaction.name || 'Unknown'}
                       </div>
                     </div>
-                    <div className="flex-none w-48 px-6 py-4">
+                    <div className="flex-none w-48 px-6 py-2">
                       <div className="flex items-center">
-                        <Phone className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                        <Phone className="h-3 w-3 text-gray-400 mr-2 flex-shrink-0" />
                         <span className="text-sm text-gray-900 truncate">
                           {transaction.mobileNumber || "N/A"}
                         </span>
                       </div>
                     </div>
-                    <div className="flex-none w-48 px-6 py-4">
+                    <div className="flex-none w-48 px-6 py-2">
                       <div className="flex items-center">
                         <span
                           className={`text-sm font-medium truncate ${
@@ -444,17 +444,12 @@ const CustomerTable = ({
                         </span>
                       </div>
                     </div>
-                    <div className="flex-none w-48 px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        <div className="font-medium truncate">
-                          {transaction.agentId?.agentname || 'Unknown'}
-                        </div>
-                        <div className="text-gray-500 truncate">
-                          ({transaction.agentId?.agentno || 'N/A'})
-                        </div>
+                    <div className="flex-none w-48 px-6 py-2">
+                      <div className="text-sm font-medium text-gray-900 truncate">
+                        {transaction.agentId?.agentname || 'Unknown'}
                       </div>
                     </div>
-                    <div className="flex-none w-48 px-6 py-4">
+                    <div className="flex-none w-48 px-6 py-2">
                       <div className="text-sm text-gray-600">
                         {transaction.time ? (
                           <div>
