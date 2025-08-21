@@ -8,10 +8,8 @@ import {
   IndianRupee,
   User,
   Calendar,
-  TrendingUp,
   X,
   RefreshCw,
-  Filter,
 } from "lucide-react";
 import { formatCurrency } from "../utils/formatUtils";
 import { useCustomerReportData } from "../hooks/useCustomerReportData";
@@ -33,7 +31,6 @@ const CustomerTable = ({
   const [showRefreshButton, setShowRefreshButton] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
   const [retryCount, setRetryCount] = useState(0);
-
   const [selectedAgent, setSelectedAgent] = useState("");
 
   const {
@@ -134,17 +131,20 @@ const CustomerTable = ({
         } else if (sortField === "agentNo") {
           aValue = a?.agentId?.agentno || "";
           bValue = b?.agentId?.agentno || "";
+        } else if (sortField === "date") {
+          // Combine date and time into a comparable timestamp
+          const aDateTime = new Date(`${a?.date || ""} ${a?.time || "00:00"}`);
+          const bDateTime = new Date(`${b?.date || ""} ${b?.time || "00:00"}`);
+          aValue = aDateTime.getTime();
+          bValue = bDateTime.getTime();
         }
-
-        if (aValue == null) aValue = "";
-        if (bValue == null) bValue = "";
 
         if (sortField === "prevBalance" || sortField === "collAmt") {
           aValue = parseFloat(aValue) || 0;
           bValue = parseFloat(bValue) || 0;
-        } else {
-          aValue = aValue.toString().toLowerCase();
-          bValue = bValue.toString().toLowerCase();
+        } else if (sortField !== "date") {
+          aValue = aValue?.toString().toLowerCase() || "";
+          bValue = bValue?.toString().toLowerCase() || "";
         }
 
         const comparison = aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
@@ -218,11 +218,9 @@ const CustomerTable = ({
 
   return (
     <div className="h-[34rem] overflow-hidden mt-8 border border-gray-200 rounded-lg">
-      {/* Top Controls Bar - Inside Border */}
       {!hideTopControls && (
         <div className="px-6 py-4 bg-white border-b border-gray-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            {/* Left side: Search and Filter */}
             <div className="flex items-center space-x-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -235,8 +233,7 @@ const CustomerTable = ({
                   className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm w-80"
                 />
               </div>
-              
-              {/* Agent Filter Dropdown */}
+
               <div className="flex items-center space-x-2">
                 <select
                   value={selectedAgent}
@@ -262,7 +259,6 @@ const CustomerTable = ({
               </div>
             </div>
 
-            {/* Right side: Refresh Button */}
             {!hideRefreshButton && (
               <div className="flex items-center space-x-3">
                 <button
@@ -287,48 +283,15 @@ const CustomerTable = ({
         </div>
       )}
 
-      {/* Table Header - Sticky */}
       <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
         <div className="flex">
           {[
-            {
-              key: "accountNo",
-              label: "Account No",
-              icon: CreditCard,
-              minWidth: "min-w-[120px]",
-            },
-            {
-              key: "name",
-              label: "Customer Name",
-              icon: User,
-              minWidth: "min-w-[160px]",
-            },
-            {
-              key: "mobileNumber",
-              label: "Mobile",
-              icon: Phone,
-              minWidth: "min-w-[120px]",
-              sortable: false,
-            },
-            {
-              key: "collAmt",
-              label: "Collection",
-              icon: IndianRupee,
-              minWidth: "min-w-[120px]",
-            },
-            {
-              key: "agentName",
-              label: "Agent",
-              icon: Users,
-              minWidth: "min-w-[140px]",
-              sortable: false,
-            },
-            {
-              key: "time",
-              label: "Time",
-              icon: Calendar,
-              minWidth: "min-w-[140px]",
-            },
+            { key: "accountNo", label: "Account No", icon: CreditCard, minWidth: "min-w-[120px]" },
+            { key: "name", label: "Customer Name", icon: User, minWidth: "min-w-[160px]" },
+            { key: "mobileNumber", label: "Mobile", icon: Phone, minWidth: "min-w-[120px]", sortable: false },
+            { key: "collAmt", label: "Collection", icon: IndianRupee, minWidth: "min-w-[120px]" },
+            { key: "agentName", label: "Agent", icon: Users, minWidth: "min-w-[140px]", sortable: false },
+            { key: "date", label: "Date & Time", icon: Calendar, minWidth: "min-w-[160px]" },
           ].map(({ key, label, icon: Icon, minWidth, sortable = true }) => (
             <div
               key={key}
@@ -340,16 +303,13 @@ const CustomerTable = ({
               <div className="flex items-center space-x-1">
                 <Icon className="h-3 w-3" />
                 <span>{label}</span>
-                {sortable && (
-                  <span className="text-gray-400">{getSortIcon(key)}</span>
-                )}
+                {sortable && <span className="text-gray-400">{getSortIcon(key)}</span>}
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Table Body - Scrollable */}
       <div className="h-[24rem] overflow-y-auto">
         <div className="divide-y divide-gray-200 bg-white">
           {sortedTransactions.length === 0 ? (
@@ -393,7 +353,7 @@ const CustomerTable = ({
                     {t.agentId?.agentname || "Unknown"}
                   </span>
                 </div>
-                <div className="flex-1 min-w-[140px] px-4 py-3">
+                <div className="flex-1 min-w-[160px] px-4 py-3">
                   {t.time ? (
                     <>
                       <div className="text-sm">{t.time}</div>
@@ -416,7 +376,6 @@ const CustomerTable = ({
         </div>
       </div>
 
-      {/* Footer - Sticky */}
       {sortedTransactions.length > 0 && (
         <div className="sticky bottom-0 px-4 py-3 border-t border-gray-200 bg-gray-50 flex flex-wrap justify-between items-center text-sm text-gray-600 gap-3">
           <span>

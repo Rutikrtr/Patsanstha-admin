@@ -148,11 +148,11 @@ const SettingsPage = () => {
       </div>
 
       {/* Logout Button */}
-      <div className="fixed bottom-12 right-12 z-40">
+      <div className="fixed bottom-12 right-10 mr-3 z-40">
         <button
           onClick={() => setShowLogoutConfirm(true)}
           disabled={isLoggingOut}
-          className={`flex items-center px-4 py-3 rounded-lg shadow-lg transition-all duration-200 ${
+          className={`flex items-center px-3 py-2 rounded-lg shadow-lg transition-all duration-200 ${
             isLoggingOut
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-red-500 hover:bg-red-600 hover:shadow-xl transform hover:scale-105"
