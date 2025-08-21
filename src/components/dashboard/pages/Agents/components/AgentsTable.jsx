@@ -291,7 +291,7 @@ const AgentsTable = ({
       />
 
       {/* TABLE CONTAINER WITH FIXED HEIGHT AND SCROLLABLE BODY */}
-      <div className="h-[31rem] overflow-hidden border border-gray-200 rounded-lg">
+      <div className="h-[34rem] overflow-hidden border border-gray-200 rounded-lg">
         {/* TOP BAR - INSIDE BORDER */}
         <div className="px-6 py-4 bg-white border-b border-gray-200">
           <div className="flex flex-col space-y-3">
@@ -350,7 +350,7 @@ const AgentsTable = ({
         </table>
 
         {/* SCROLLABLE BODY */}
-        <div className="h-[24rem] overflow-y-auto">
+        <div className="h-[27rem] overflow-y-auto">
           <table className="w-full">
             <tbody className="divide-y divide-gray-200 bg-white">
               {filteredAgents.map((agent, index) => {
@@ -361,7 +361,7 @@ const AgentsTable = ({
                     key={agent.agentno}
                     className="hover:bg-gray-50 transition-colors duration-200"
                   >
-                    <td className="px-5 py-3 whitespace-nowrap">
+                    <td className="px-5 py-5 whitespace-nowrap">
                       <div className="flex items-center space-x-3">
                         <div className="relative">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
