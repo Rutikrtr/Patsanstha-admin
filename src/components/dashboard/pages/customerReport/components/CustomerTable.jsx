@@ -10,6 +10,8 @@ import {
   Calendar,
   TrendingUp,
   X,
+  RefreshCw,
+  Filter,
 } from "lucide-react";
 import { formatCurrency } from "../utils/formatUtils";
 import { useCustomerReportData } from "../hooks/useCustomerReportData";
@@ -23,6 +25,8 @@ const CustomerTable = ({
   showInitialLoading = true,
   parentLoading = false,
   parentError = null,
+  hideTopControls = false,
+  hideRefreshButton = false,
 }) => {
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
@@ -213,168 +217,183 @@ const CustomerTable = ({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm flex flex-col h-full max-h-[calc(107vh-220px)] max-w-6xl mx-auto -mt-4">
-      {/* Refresh */}
-      <div className="px-3 py-1 flex items-center justify-end border-b border-gray-200 bg-gray-50 rounded-t-xl">
-        <button
-          onClick={handleRefreshClick}
-          disabled={!showRefreshButton || loading || parentLoading}
-          className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors
-            ${
-              showRefreshButton
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "bg-gray-200 text-gray-500 cursor-not-allowed"
-            }
-            ${loading || parentLoading ? "opacity-50" : ""}`}
-        >
-          <TrendingUp className="h-3 w-3 mr-1" />
-          {loading || parentLoading ? "Refreshing..." : "Refresh"}
-        </button>
-      </div>
+    <div className="h-[34rem] overflow-hidden mt-8 border border-gray-200 rounded-lg">
+      {/* Top Controls Bar - Inside Border */}
+      {!hideTopControls && (
+        <div className="px-6 py-4 bg-white border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Left side: Search and Filter */}
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder="Search by name, account, mobile, or agent..."
+                  value={searchTerm}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  disabled={loading || parentLoading}
+                  className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm w-80"
+                />
+              </div>
+              
+              {/* Agent Filter Dropdown */}
+              <div className="flex items-center space-x-2">
+                <select
+                  value={selectedAgent}
+                  onChange={(e) => setSelectedAgent(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
+                >
+                  <option value="">All Agents</option>
+                  {uniqueAgents.map((agent) => (
+                    <option key={agent.agentno} value={agent.agentno}>
+                      {agent.agentname} ({agent.agentno})
+                    </option>
+                  ))}
+                </select>
+                {selectedAgent && (
+                  <button
+                    onClick={clearAgentFilter}
+                    className="text-gray-600 hover:text-red-600 p-1"
+                    title="Clear agent filter"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
 
-      {/* Top Controls */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
-        <div className="p-3 flex flex-wrap gap-3 items-center justify-between">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, account, mobile, or agent..."
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              disabled={loading || parentLoading}
-              className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-          </div>
-
-          {/* Agent Filter */}
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedAgent}
-              onChange={(e) => setSelectedAgent(e.target.value)}
-              className="px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            >
-              <option value="">All Agents</option>
-              {uniqueAgents.map((agent) => (
-                <option key={agent.agentno} value={agent.agentno}>
-                  {agent.agentname} ({agent.agentno})
-                </option>
-              ))}
-            </select>
-            {selectedAgent && (
-              <button
-                onClick={clearAgentFilter}
-                className="text-gray-600 hover:text-red-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
+            {/* Right side: Refresh Button */}
+            {!hideRefreshButton && (
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleRefreshClick}
+                  disabled={loading || parentLoading}
+                  className={`px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${
+                    (loading || parentLoading)
+                      ? "bg-green-600 text-white"
+                      : showRefreshButton
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  <RefreshCw className={`h-4 w-4 ${(loading || parentLoading) ? "animate-spin" : ""}`} />
+                  <span className="min-w-[4.5rem] text-left">
+                    {(loading || parentLoading) ? "Updating..." : "Refresh"}
+                  </span>
+                </button>
+              </div>
             )}
           </div>
         </div>
+      )}
 
-        {/* Table Header */}
-        <div className="bg-gray-50 border-t border-gray-200">
-          <div className="flex">
-            {[
-              {
-                key: "accountNo",
-                label: "Account No",
-                icon: CreditCard,
-                minWidth: "min-w-[120px]",
-              },
-              {
-                key: "name",
-                label: "Customer Name",
-                icon: User,
-                minWidth: "min-w-[160px]",
-              },
-              {
-                key: "mobileNumber",
-                label: "Mobile",
-                icon: Phone,
-                minWidth: "min-w-[120px]",
-                sortable: false,
-              },
-              {
-                key: "collAmt",
-                label: "Collection",
-                icon: IndianRupee,
-                minWidth: "min-w-[120px]",
-              },
-              {
-                key: "agentName",
-                label: "Agent",
-                icon: Users,
-                minWidth: "min-w-[140px]",
-                sortable: false,
-              },
-              {
-                key: "time",
-                label: "Time",
-                icon: Calendar,
-                minWidth: "min-w-[140px]",
-              },
-            ].map(({ key, label, icon: Icon, minWidth, sortable = true }) => (
-              <div
-                key={key}
-                className={`flex-1 ${minWidth} px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                  sortable ? "cursor-pointer hover:bg-gray-100" : ""
-                }`}
-                onClick={sortable ? () => handleSort(key) : undefined}
-              >
-                <div className="flex items-center space-x-1">
-                  <Icon className="h-3 w-3" />
-                  <span>{label}</span>
-                  {sortable && (
-                    <span className="text-gray-400">{getSortIcon(key)}</span>
-                  )}
-                </div>
+      {/* Table Header - Sticky */}
+      <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+        <div className="flex">
+          {[
+            {
+              key: "accountNo",
+              label: "Account No",
+              icon: CreditCard,
+              minWidth: "min-w-[120px]",
+            },
+            {
+              key: "name",
+              label: "Customer Name",
+              icon: User,
+              minWidth: "min-w-[160px]",
+            },
+            {
+              key: "mobileNumber",
+              label: "Mobile",
+              icon: Phone,
+              minWidth: "min-w-[120px]",
+              sortable: false,
+            },
+            {
+              key: "collAmt",
+              label: "Collection",
+              icon: IndianRupee,
+              minWidth: "min-w-[120px]",
+            },
+            {
+              key: "agentName",
+              label: "Agent",
+              icon: Users,
+              minWidth: "min-w-[140px]",
+              sortable: false,
+            },
+            {
+              key: "time",
+              label: "Time",
+              icon: Calendar,
+              minWidth: "min-w-[140px]",
+            },
+          ].map(({ key, label, icon: Icon, minWidth, sortable = true }) => (
+            <div
+              key={key}
+              className={`flex-1 ${minWidth} px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider ${
+                sortable ? "cursor-pointer hover:bg-gray-100" : ""
+              }`}
+              onClick={sortable ? () => handleSort(key) : undefined}
+            >
+              <div className="flex items-center space-x-1">
+                <Icon className="h-3 w-3" />
+                <span>{label}</span>
+                {sortable && (
+                  <span className="text-gray-400">{getSortIcon(key)}</span>
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Table Body */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="divide-y divide-gray-200">
+      {/* Table Body - Scrollable */}
+      <div className="h-[24rem] overflow-y-auto">
+        <div className="divide-y divide-gray-200 bg-white">
           {sortedTransactions.length === 0 ? (
-            <EmptyState
-              type={searchTerm || selectedAgent ? "no-search-results" : "no-data"}
-              searchTerm={searchTerm}
-              onClearSearch={
-                searchTerm || selectedAgent
-                  ? () => {
-                      onSearchChange("");
-                      setSelectedAgent("");
-                    }
-                  : undefined
-              }
-            />
+            <div className="text-center py-16 bg-white">
+              <EmptyState
+                type={searchTerm || selectedAgent ? "no-search-results" : "no-data"}
+                searchTerm={searchTerm}
+                onClearSearch={
+                  searchTerm || selectedAgent
+                    ? () => {
+                        onSearchChange("");
+                        setSelectedAgent("");
+                      }
+                    : undefined
+                }
+              />
+            </div>
           ) : (
             sortedTransactions.map((t, i) => (
               <div key={t._id || i} className="flex hover:bg-gray-50">
-                <div className="flex-1 min-w-[120px] px-4 py-2">
+                <div className="flex-1 min-w-[120px] px-4 py-3">
                   <span className="text-sm font-medium">
                     {t.accountNo || "N/A"}
                   </span>
                 </div>
-                <div className="flex-1 min-w-[160px] px-4 py-2">
+                <div className="flex-1 min-w-[160px] px-4 py-3">
                   <span className="text-sm font-medium">
                     {t.name || "Unknown"}
                   </span>
                 </div>
-                <div className="flex-1 min-w-[120px] px-4 py-2">
-                  {t.mobileNumber || "N/A"}
+                <div className="flex-1 min-w-[120px] px-4 py-3">
+                  <span className="text-sm text-gray-900">
+                    {t.mobileNumber || "N/A"}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-[120px] px-4 py-2 text-green-600 font-medium">
+                <div className="flex-1 min-w-[120px] px-4 py-3 text-green-600 font-medium">
                   {formatCurrency(t.collAmt || 0)}
                 </div>
-                <div className="flex-1 min-w-[140px] px-4 py-2">
-                  {t.agentId?.agentname || "Unknown"}
+                <div className="flex-1 min-w-[140px] px-4 py-3">
+                  <span className="text-sm text-gray-900">
+                    {t.agentId?.agentname || "Unknown"}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-[140px] px-4 py-2">
+                <div className="flex-1 min-w-[140px] px-4 py-3">
                   {t.time ? (
                     <>
                       <div className="text-sm">{t.time}</div>
@@ -397,9 +416,9 @@ const CustomerTable = ({
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer - Sticky */}
       {sortedTransactions.length > 0 && (
-        <div className="sticky bottom-0 px-4 py-2 border-t border-gray-200 bg-gray-50 rounded-b-xl flex flex-wrap justify-between items-center text-sm text-gray-600 gap-3">
+        <div className="sticky bottom-0 px-4 py-3 border-t border-gray-200 bg-gray-50 flex flex-wrap justify-between items-center text-sm text-gray-600 gap-3">
           <span>
             Showing {sortedTransactions.length} of {allTransactions.length}
             {(searchTerm || selectedAgent) && ` (filtered)`}
