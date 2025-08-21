@@ -232,36 +232,38 @@ const AgentsTable = ({
   };
 
   const handleDownloadCollection = async (agentno) => {
-    setDownloadingAgent(agentno);
-    try {
-      const today = new Date().toISOString().split("T")[0];
-      const fileContent = await patsansthaAPI.downloadAgentCollection(agentno, today);
+  setDownloadingAgent(agentno);
+  try {
+    const response = await patsansthaAPI.downloadAgentCollection(agentno);
 
-      if (!fileContent) {
-        throw new Error("No file content received from server");
-      }
-
-      const blob = new Blob([fileContent], { type: "text/plain" });
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = url;
-      a.download = `${patsansthaData?.patname || "collection"}_${agentno}_${today}.txt`;
-
-      document.body.appendChild(a);
-      a.click();
-
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      await fetchCollectionStatus();
-    } catch (error) {
-      handleApiError(error, "Download failed");
-    } finally {
-      setDownloadingAgent(null);
+    if (!response || !response.fileContent) {
+      throw new Error("No file content received from server");
     }
-  };
+
+    const { filename, fileContent } = response;
+
+    const blob = new Blob([fileContent], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = url;
+    a.download = filename; // ✅ Use filename from backend
+
+    document.body.appendChild(a);
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    await fetchCollectionStatus();
+  } catch (error) {
+    handleApiError(error, "Download failed");
+  } finally {
+    setDownloadingAgent(null);
+  }
+};
+
 
   useEffect(() => {
     fetchCollectionStatus();
