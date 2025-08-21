@@ -232,36 +232,38 @@ const AgentsTable = ({
   };
 
   const handleDownloadCollection = async (agentno) => {
-    setDownloadingAgent(agentno);
-    try {
-      const today = new Date().toISOString().split("T")[0];
-      const fileContent = await patsansthaAPI.downloadAgentCollection(agentno, today);
+  setDownloadingAgent(agentno);
+  try {
+    const response = await patsansthaAPI.downloadAgentCollection(agentno);
 
-      if (!fileContent) {
-        throw new Error("No file content received from server");
-      }
-
-      const blob = new Blob([fileContent], { type: "text/plain" });
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = url;
-      a.download = `${patsansthaData?.patname || "collection"}_${agentno}_${today}.txt`;
-
-      document.body.appendChild(a);
-      a.click();
-
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      await fetchCollectionStatus();
-    } catch (error) {
-      handleApiError(error, "Download failed");
-    } finally {
-      setDownloadingAgent(null);
+    if (!response || !response.fileContent) {
+      throw new Error("No file content received from server");
     }
-  };
+
+    const { filename, fileContent } = response;
+
+    const blob = new Blob([fileContent], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = url;
+    a.download = filename; // ✅ Use filename from backend
+
+    document.body.appendChild(a);
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    await fetchCollectionStatus();
+  } catch (error) {
+    handleApiError(error, "Download failed");
+  } finally {
+    setDownloadingAgent(null);
+  }
+};
+
 
   useEffect(() => {
     fetchCollectionStatus();
@@ -290,239 +292,238 @@ const AgentsTable = ({
         errorMessage={errorMessage}
       />
 
-      {/* TOP BAR */}
-      <div className="px-6 py-6 bg-white border-b border-gray-200">
-        <div className="flex flex-col space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="Search agents..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
+      {/* TABLE CONTAINER WITH FIXED HEIGHT AND SCROLLABLE BODY */}
+      <div className="h-[34rem] overflow-hidden border border-gray-200 rounded-lg">
+        {/* TOP BAR - INSIDE BORDER */}
+        <div className="px-6 py-4 bg-white border-b border-gray-200">
+          <div className="flex flex-col space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    placeholder="Search agents..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing || loadingStatus}
+                  className={`px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${
+                    showRefreshButton
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                  <span className="min-w-[4.5rem] text-left">{refreshing ? "Updating..." : "Refresh"}</span>
+                </button>
               </div>
             </div>
-
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing || loadingStatus}
-                className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${
-                  showRefreshButton
-                    ? "bg-green-600 hover:bg-green-700 text-white"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
-              >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                <span>{refreshing ? "Updating..." : "Refresh"}</span>
-              </button>
-            </div>
           </div>
-
-          {loadingStatus && (
-            <div className="flex items-center space-x-2 text-blue-600 text-sm">
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-              <span>Loading collection status...</span>
-            </div>
-          )}
         </div>
-      </div>
-
-      {/* TABLE */}
-      <div className="overflow-x-auto">
         <table className="w-full">
-          <thead>
+          {/* FIXED HEADER */}
+          <thead className="sticky top-0 z-10">
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Agent Details
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Agent ID
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Mobile Number
               </th>
-              <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              <th className="px-5 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Collection Status
               </th>
-              <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              <th className="px-5 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
-            {filteredAgents.map((agent, index) => {
-              const collectionInfo = getAgentCollectionInfo(agent.agentno);
+        </table>
 
-              return (
-                <tr
-                  key={agent.agentno}
-                  className="hover:bg-gray-50 transition-colors duration-200"
-                >
-                  <td className="px-6 py-5 whitespace-nowrap">
-                    <div className="flex items-center space-x-4">
-                      <div className="relative">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
-                          <span className="text-white font-semibold text-base">
-                            {agent.agentname?.charAt(0)?.toUpperCase() || "A"}
-                          </span>
+        {/* SCROLLABLE BODY */}
+        <div className="h-[27rem] overflow-y-auto">
+          <table className="w-full">
+            <tbody className="divide-y divide-gray-200 bg-white">
+              {filteredAgents.map((agent, index) => {
+                const collectionInfo = getAgentCollectionInfo(agent.agentno);
+
+                return (
+                  <tr
+                    key={agent.agentno}
+                    className="hover:bg-gray-50 transition-colors duration-200"
+                  >
+                    <td className="px-5 py-5 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        <div className="relative">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
+                            <span className="text-white font-semibold text-sm">
+                              {agent.agentname?.charAt(0)?.toUpperCase() || "A"}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <div className="text-base font-semibold text-gray-900">
-                          {agent.agentname || "Unknown Agent"}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Agent #{String(index + 1).padStart(3, "0")}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 whitespace-nowrap">
-                    <div className="inline-flex items-center">
-                      <span className="px-3 py-1 bg-gray-100 text-gray-800 font-medium text-sm rounded-full">
-                        {agent.agentno || "N/A"}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
-                      <Phone className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-900">
-                        {agent.mobileNumber
-                          ? `+91 ${agent.mobileNumber.slice(0, 5)} ${agent.mobileNumber.slice(5)}`
-                          : "Not provided"}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 whitespace-nowrap text-center">
-                    {collectionInfo ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-center space-x-2">
-                          {collectionInfo.submitted ? (
-                            <>
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                              <span className="text-green-700 text-sm font-medium">
-                                Submitted
-                              </span>
-                            </>
-                          ) : collectionInfo.hasData ? (
-                            <>
-                              <Clock className="h-4 w-4 text-yellow-500" />
-                              <span className="text-yellow-700 text-sm font-medium">
-                                Data Uploaded
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <AlertCircle className="h-4 w-4 text-red-500" />
-                              <span className="text-red-700 text-sm font-medium">
-                                No Data
-                              </span>
-                            </>
-                          )}
-                        </div>
-                        {collectionInfo.hasData && (
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">
+                            {agent.agentname || "Unknown Agent"}
+                          </div>
                           <div className="text-xs text-gray-500">
-                            {collectionInfo.totalTransactions || 0} transactions
-                            <br />
-                            {formatCurrency(collectionInfo.totalAmount || 0)}
+                            Agent #{String(index + 1).padStart(3, "0")}
                           </div>
-                        )}
-                        {collectionInfo.submittedAt && (
-                          <div className="text-xs text-green-600">
-                            {new Date(collectionInfo.submittedAt).toLocaleString()}
-                          </div>
-                        )}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-center space-x-2">
-                        <div className="w-3 h-3 bg-gray-300 rounded-full animate-pulse"></div>
-                        <span className="text-gray-400 text-sm">Loading...</span>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <div className="inline-flex items-center">
+                        <span className="px-2 py-1 bg-gray-100 text-gray-800 font-medium text-xs rounded-full">
+                          {agent.agentno || "N/A"}
+                        </span>
                       </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-5 whitespace-nowrap text-center">
-                    <div className="flex items-center justify-center space-x-2">
-                      <button
-                        onClick={() => handleFileUpload(agent.agentno)}
-                        disabled={uploadingAgent === agent.agentno}
-                        className={`p-2 rounded-lg transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
-                          collectionInfo?.hasData
-                            ? "text-green-600 hover:bg-green-50 border border-green-200"
-                            : "text-blue-600 hover:bg-blue-50 border border-blue-200"
-                        }`}
-                        title="Upload Data File"
-                      >
-                        {uploadingAgent === agent.agentno ? (
-                          <div className="relative">
-                            <Upload className="h-4 w-4 animate-spin" />
-                            {uploadProgress[agent.agentno] && (
-                              <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-blue-600 font-medium whitespace-nowrap">
-                                {uploadProgress[agent.agentno]}%
-                              </div>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <Phone className="h-3 w-3 text-gray-400" />
+                        <span className="text-sm text-gray-900">
+                          {agent.mobileNumber
+                            ? `+91 ${agent.mobileNumber.slice(0, 5)} ${agent.mobileNumber.slice(5)}`
+                            : "Not provided"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap text-center">
+                      {collectionInfo ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-center space-x-2">
+                            {collectionInfo.submitted ? (
+                              <>
+                                <CheckCircle className="h-3 w-3 text-green-500" />
+                                <span className="text-green-700 text-xs font-medium">
+                                  Submitted
+                                </span>
+                              </>
+                            ) : collectionInfo.hasData ? (
+                              <>
+                                <Clock className="h-3 w-3 text-yellow-500" />
+                                <span className="text-yellow-700 text-xs font-medium">
+                                  Data Uploaded
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="h-3 w-3 text-red-500" />
+                                <span className="text-red-700 text-xs font-medium">
+                                  No Data
+                                </span>
+                              </>
                             )}
                           </div>
-                        ) : (
-                          <FileText className="h-4 w-4" />
-                        )}
-                      </button>
-
-                      {collectionInfo?.submitted && collectionInfo?.hasData ? (
+                          {collectionInfo.hasData && (
+                            <div className="text-xs text-gray-500">
+                              {collectionInfo.totalTransactions || 0} transactions
+                              <br />
+                              {formatCurrency(collectionInfo.totalAmount || 0)}
+                            </div>
+                          )}
+                          {collectionInfo.submittedAt && (
+                            <div className="text-xs text-green-600">
+                              {new Date(collectionInfo.submittedAt).toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="w-2 h-2 bg-gray-300 rounded-full animate-pulse"></div>
+                          <span className="text-gray-400 text-xs">Loading...</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center space-x-2">
                         <button
-                          onClick={() => handleDownloadCollection(agent.agentno)}
-                          disabled={downloadingAgent === agent.agentno}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200 hover:scale-105 border border-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={
-                            collectionInfo.downloaded
-                              ? "Re-download Collection File"
-                              : "Download Collection File"
-                          }
+                          onClick={() => handleFileUpload(agent.agentno)}
+                          disabled={uploadingAgent === agent.agentno}
+                          className={`p-2 rounded-lg transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                            collectionInfo?.hasData
+                              ? "text-green-600 hover:bg-green-50 border border-green-200"
+                              : "text-blue-600 hover:bg-blue-50 border border-blue-200"
+                          }`}
+                          title="Upload Data File"
                         >
-                          {downloadingAgent === agent.agentno ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                          {uploadingAgent === agent.agentno ? (
+                            <div className="relative">
+                              <Upload className="h-3 w-3 animate-spin" />
+                              {uploadProgress[agent.agentno] && (
+                                <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-blue-600 font-medium whitespace-nowrap">
+                                  {uploadProgress[agent.agentno]}%
+                                </div>
+                              )}
+                            </div>
                           ) : (
-                            <Download className="h-4 w-4" />
+                            <FileText className="h-3 w-3" />
                           )}
                         </button>
-                      ) : (
-                        <button
-                          disabled
-                          className="p-2 text-gray-400 rounded-lg border border-gray-200 opacity-50 cursor-not-allowed"
-                          title="Collection not available for download"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
 
-      {/* EMPTY STATE */}
-      {filteredAgents.length === 0 && (
-        <div className="text-center py-16 bg-white">
-          <div className="mx-auto mb-6">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-              <Users className="h-10 w-10 text-gray-400" />
+                        {collectionInfo?.submitted && collectionInfo?.hasData ? (
+                          <button
+                            onClick={() => handleDownloadCollection(agent.agentno)}
+                            disabled={downloadingAgent === agent.agentno}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200 hover:scale-105 border border-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={
+                              collectionInfo.downloaded
+                                ? "Re-download Collection File"
+                                : "Download Collection File"
+                            }
+                          >
+                            {downloadingAgent === agent.agentno ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-600"></div>
+                            ) : (
+                              <Download className="h-3 w-3" />
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            disabled
+                            className="p-2 text-gray-400 rounded-lg border border-gray-200 opacity-50 cursor-not-allowed"
+                            title="Collection not available for download"
+                          >
+                            <Download className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* EMPTY STATE - Inside scrollable area */}
+          {filteredAgents.length === 0 && (
+            <div className="text-center py-12 bg-white">
+              <div className="mx-auto mb-4">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                  <Users className="h-8 w-8 text-gray-400" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No agents found</h3>
+              <p className="text-gray-500 text-sm">
+                {searchTerm
+                  ? "Try adjusting your search criteria to find agents."
+                  : "No agents are currently available in the system."}
+              </p>
             </div>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">No agents found</h3>
-          <p className="text-gray-500 mb-8 text-base">
-            {searchTerm
-              ? "Try adjusting your search criteria to find agents."
-              : "No agents are currently available in the system."}
-          </p>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

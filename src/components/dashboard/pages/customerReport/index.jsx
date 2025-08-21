@@ -17,27 +17,20 @@ const CustomerReport = () => {
 
   if (loading && !patsansthaData && !transactionData) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-4">
         <div>
           <h1 className="text-xl font-semibold text-gray-900 flex items-center">
             Transactions
           </h1>
           <p className="text-gray-600">Detailed collection data per customer</p>
         </div>
-
-        {/* <div className="flex items-center justify-center py-16">
-          <div className="flex items-center space-x-3">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
-            <span className="text-gray-600">Loading Transactions...</span>
-          </div>
-        </div> */}
       </div>
     );
   }
 
   if (error && !patsansthaData && !transactionData) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-4">
         <div>
           <h1 className="text-xl font-semibold text-gray-900 flex items-center">
             Transactions
@@ -67,12 +60,12 @@ const CustomerReport = () => {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold text-gray-900 flex items-center">
           Transactions
         </h1>
-        <p className="text-gray-600">Detailed collection data per customer</p>
+        <p className="text-gray-600">Customer Summary</p>
       </div>
 
       <CollectionsList

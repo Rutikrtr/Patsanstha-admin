@@ -94,12 +94,11 @@ export const fileApiCall = async (endpoint, options = {}) => {
     throw error;
   }
 };
-
 export const downloadApiCall = async (endpoint, options = {}) => {
   try {
-    const config = { url: endpoint, method: options.method || 'GET', responseType: 'text', ...options };
+    const config = { url: endpoint, method: options.method || 'GET', responseType: 'json', ...options };
     const response = await apiClient(config);
-    return response.data;
+    return response.data; // { filename, fileContent }
   } catch (error) {
     if (error.response?.status >= 400) {
       const errorMessage = error.response.data?.message || `Download failed! status: ${error.response.status}`;
@@ -108,6 +107,7 @@ export const downloadApiCall = async (endpoint, options = {}) => {
     throw error;
   }
 };
+
 
 export const authStorage = {
   setAuthData: (token, userData) => {
