@@ -213,7 +213,7 @@ const CustomerTable = ({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm flex flex-col h-full max-h-[calc(100vh-220px)] max-w-6xl mx-auto">
+    <div className="bg-white rounded-xl shadow-sm flex flex-col h-full max-h-[calc(107vh-220px)] max-w-6xl mx-auto -mt-4">
       {/* Refresh */}
       <div className="px-3 py-1 flex items-center justify-end border-b border-gray-200 bg-gray-50 rounded-t-xl">
         <button
